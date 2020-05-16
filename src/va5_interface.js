@@ -2,10 +2,6 @@
   "use strict";
   var va5 = exports.va5 || {}; exports.va5 = va5;
 
-  // ここにはexport対象のみを定義する。
-  // NB: 他の多くのjsファイルとは違い、このファイルは必ず一番最後に
-  //     実行される必要がある！要注意！！！
-
 
   va5.config = va5.Config.data;
   // NB: va4とは違い、このconfig値の変更は現在再生中のものには影響を与えない。
@@ -160,6 +156,9 @@
 //  };
 
   // 以上は古いコード
+
+
+  va5.init = va5.Init.init;
 
 
   va5.floatToPercent = va5.Util.floatToPercent;
