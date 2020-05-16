@@ -45,9 +45,9 @@
     eval(label);
   }));
 
-  va5.config["is-output-error-log"] = true;
-  va5.config["is-output-debug-log"] = true;
-  va5.init();
+  //va5.config["is-output-error-log"] = true;
+  //va5.config["is-output-debug-log"] = true;
+  //va5.init();
 
 
   //console.log("TODO");
