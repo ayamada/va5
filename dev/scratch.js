@@ -52,4 +52,15 @@
   va5.config["is-output-debug-log"] = true;
   va5.init();
 
+
+  va5.hoge = function () {
+    var path = "./kick.m4a";
+    va5.device.loadAudioSource(path, function (as) {
+      console.log("loaded", as);
+    });
+  };
+
+
+
+
 })(this);

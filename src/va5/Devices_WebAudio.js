@@ -61,6 +61,55 @@
   };
 
 
+  // ロードに成功しても失敗してもcontが実行される。
+  // 成功していれば引数にasが渡され、失敗ならnullが渡される。
+  // asは「メタ情報を付与されたAudioSource」であり、WebAudioの場合は
+  // bufとその他のメタ情報になる。
+  // NB: ここに渡すpathは va5._cache.appendQueryString() 処理済である事！
+  device.loadAudioSource = function (path, cont) {
+    function errorEnd1 (e) {
+      va5._logError(["failed to load", path]);
+      cont(null);
+      return;
+    }
+    function errorEnd2 (e) {
+      va5._logError(["cannot decode", path]);
+      cont(null);
+      return;
+    }
+    if (path === null) { errorEnd1(); return; }
+    if (ac === null) {
+      va5._logDebug(["disabled WebAudio", path]);
+      cont(null); // TODO: 可能ならダミーのasを返して成功扱いにしたい
+      return;
+    }
+    var xhr = new XMLHttpRequest();
+    xhr.open("GET", path);
+    xhr.responseType = "arraybuffer";
+    xhr.onerror = errorEnd1;
+    xhr.onload = function (e) {
+      var firstLetter = (""+e.target.status).substr(0, 1);
+      if ((firstLetter !== "0") && (firstLetter !== "2")) {
+        errorEnd1();
+        return;
+      }
+      try {
+        ac.decodeAudioData(xhr.response, function (buf) {
+          if (!buf) { errorEnd2(); return; }
+          // NB: buf以外の情報はこの外側で付与する。
+          //     ここに渡ってくるpathはquery付きなので、ここでは含めない事！
+          var as = {buf: buf};
+          cont(as);
+          return;
+        }, errorEnd2);
+      }
+      catch (e) {
+        errorEnd2();
+        return;
+      }
+    };
+    xhr.send();
+  };
 
 
 
@@ -78,51 +127,6 @@
 //    return as.duration;
 //  }
 //
-//  // ロードに成功しても失敗してもcontが実行される。
-//  // 成功していれば引数にasが渡され、失敗ならnullが渡される。
-//  // NB: ここに渡すpathは va5._cache.appendQueryString() 処理済である事！
-//  // va5ではasはbufそのものとして扱う。bufの長さは buf.duration で取れる。
-//  va5.device.loadAudioSource = function (path, cont) {
-//    function errorEnd1 (e) {
-//      va5._logError(["failed to load", path]);
-//      cont(null);
-//      return;
-//    }
-//    function errorEnd2 (e) {
-//      va5._logError(["cannot decode", path]);
-//      cont(null);
-//      return;
-//    }
-//    if (path === null) { errorEnd1(); return; }
-//    if (ac === null) {
-//      va5._logDebug(["disabled WebAudio", path]);
-//      cont(null); // TODO: 可能ならダミーのasを返して成功扱いにしたい
-//      return;
-//    }
-//    var xhr = new XMLHttpRequest();
-//    xhr.open("GET", path);
-//    xhr.responseType = "arraybuffer";
-//    xhr.onerror = errorEnd1;
-//    xhr.onload = function (e) {
-//      var firstLetter = (""+e.target.status).substr(0, 1);
-//      if ((firstLetter !== "0") && (firstLetter !== "2")) {
-//        errorEnd1();
-//        return;
-//      }
-//      try {
-//        ac.decodeAudioData(xhr.response, function (buf) {
-//          if (!buf) { errorEnd2(); return; }
-//          cont(buf);
-//          return;
-//        }, errorEnd2);
-//      }
-//      catch (e) {
-//        errorEnd2();
-//        return;
-//      }
-//    };
-//    xhr.send();
-//  };
 //
 //  function disconnectSafely (node) {
 //    if (node === null) { return; }
