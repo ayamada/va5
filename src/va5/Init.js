@@ -17,8 +17,7 @@
       va5.device.init();
     }
 
-    // TODO: 以下を行わなくてはならない！ただしその為には先にBgmとSeの実装が必要
-    //va5._background.startSupervise(va5._bgm.syncBackground);
-    //va5._se.bootstrapPlayingAudioChannelPoolWatcher();
+    va5.Background.startSupervise(va5.Bgm.syncBackground);
+    va5.Se.bootstrapPlayingAudioChannelPoolWatcher();
   }
 })(this);

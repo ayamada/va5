@@ -76,11 +76,25 @@ TODO
 
 インターフェース関数メモ
 
-    - va5.getLength(path) NB: 単位はsec。ロード済でない場合はnullが返る
-        - 名前は getDuration() とかにする？こっちで。
 
-- 所属不明
+
+- バックグラウンド対応
+    - 先にbgm連携が必要では？
+    - とりあえずjsファイルだけ置いとく？
+
+
+
+
+- Init.js内のBGM/SEのスーパバイザ起動など
+
+
+
+
+
+- BGM専用
     - va5.getBgmPosition(bgmCh, isIncludeLoopAmount) TODO: 要検討
+
+- SE専用
     - va5.makePlaySePeriodically(intervalSec, path, opts) TODO: 要検討。高階関数なので扱いが分かりづらい
     - va5.makePlaySePersonally(fadeSec) TODO: 要検討。高階関数なので扱いが分かりづらい
 

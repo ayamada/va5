@@ -3,8 +3,13 @@
   var va5 = exports.va5 || {}; exports.va5 = va5;
 
 
+  // va5.version; // これのみ va5_version.js で定義される
+
+
   va5.config = va5.Config.data;
-  // NB: va4とは違い、このconfig値の変更は現在再生中のものには影響を与えない。
+
+
+  // NB: va4とは違い、config値の変更は現在再生中のものには影響を与えない。
   //     (変更したその後の再生/停止リクエストから影響を与える)
   //     volume-系の項目の変更時に、その内容を現在再生中のものに即座に
   //     適用したい場合は、変更後に明示的に va5.syncVolume(); を実行する事。
@@ -134,5 +139,4 @@
 
 
 
-  // va5.version; // これのみ va5_version.js で定義される
 })(this);
