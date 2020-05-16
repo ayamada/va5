@@ -61,6 +61,25 @@
   };
 
 
+  device.disposeAudioSource = function (as) {
+    if (as === null) { return; }
+    if (as.disposed) { return; }
+    // WebAudio では、全てが自動でGC可能な筈。
+    // ただブラウザ側の不具合でGCできない可能性もあり、
+    // その場合はここで何らかの処理を行う必要があるかもしれない
+    as.buf = null;
+    as.disposed = true;
+  };
+
+
+  device.audioSourceToDuration = function (as) {
+    if (as === null) { return null; }
+    if (as.disposed) { return null; }
+    if (!as.buf) { return null; }
+    return as.buf.duration;
+  }
+
+
   // ロードに成功しても失敗してもcontが実行される。
   // 成功していれば引数にasが渡され、失敗ならnullが渡される。
   // asは「メタ情報を付与されたAudioSource」であり、WebAudioの場合は
@@ -112,115 +131,116 @@
   };
 
 
+  // WebAudioのnodeを安全にdisconnectする為のラッパー。大した事はしていない
+  function disconnectSafely (node) {
+    if (node === null) { return; }
+    try { node.disconnect(); } catch (e) {}
+  }
+
+
+  // stateを返す。stateは再生状況に応じて変化する
+  // (nullが返った場合は、何らかの理由で再生に失敗した)
+  device.play = function (as, opts) {
+    if (!as) { return null; }
+    if (as.disposed) { return null; }
+    if (!as.buf) { return null; }
+    var buf = as.buf;
+
+    var volume = opts["volume"] || 1;
+    var pitch = opts["pitch"] || 1;
+    var pan = opts["pan"] || 0;
+    var isLoop = !!opts["isLoop"];
+    var loopStart = opts["loopStart"] || 0;
+    var loopEnd = opts["loopEnd"] || buf.duration;
+    var startPos = opts["startPos"] || 0;
+    var endPos = opts["endPos"] || null;
+
+    var sourceNode = ac.createBufferSource();
+    var gainNode = ac.createGain();
+    sourceNode.buffer = buf;
+    sourceNode.playbackRate.value = pitch;
+    gainNode.gain.value = volume;
+    sourceNode.connect(gainNode);
+    var pannerNodeType;
+    var pannerNode;
+    if (ac.createStereoPanner) {
+      pannerNodeType = "stereoPannerNode";
+      pannerNode = ac.createStereoPanner();
+      pannerNode.pan.value = pan;
+      gainNode.connect(pannerNode);
+      pannerNode.connect(masterGainNode);
+    }
+    else if (ac.createPanner) {
+      pannerNodeType = "pannerNode";
+      pannerNode = ac.createPanner();
+      pannerNode.panningModel = "equalpower";
+      pannerNode.setPosition(pan, 0, 1-Math.abs(pan));
+      gainNode.connect(pannerNode);
+      pannerNode.connect(masterGainNode);
+    }
+    else {
+      pannerNodeType = "none";
+      pannerNode = null;
+      gainNode.connect(masterGainNode);
+    }
+
+    if (isLoop) {
+      sourceNode.loop = true;
+      sourceNode.loopStart = loopStart;
+      sourceNode.loopEnd = loopEnd;
+    }
+    else {
+      sourceNode.onended = function () {
+        disconnectSafely(sourceNode);
+        disconnectSafely(gainNode);
+        disconnectSafely(pannerNode);
+        state.sourceNode = null;
+        state.gainNode = null;
+        state.pannerNode = null;
+        state.playEndTime = ac.currentTime || (Date.now()/1000);
+      };
+    }
+
+    var offset = startPos;
+    if (isLoop) {
+      offset = startPos || loopStart || 0;
+    }
+    if (endPos) {
+      var duration = endPos - offset;
+      sourceNode.start(0, offset, duration);
+    }
+    else {
+      sourceNode.start(0, offset);
+    }
+
+    var now = ac.currentTime || (Date.now()/1000);
+
+    var state = {
+      as: as,
+      volume: volume,
+      pitch: pitch,
+      pan: pan,
+      isLoop: isLoop,
+      loopStart: loopStart,
+      loopEnd: loopEnd,
+      startPos: startPos,
+      endPos: endPos,
+
+      sourceNode: sourceNode,
+      gainNode: gainNode,
+      pannerNodeType: pannerNodeType,
+      pannerNode: pannerNode,
+
+      playStartTime: now,
+      playEndTime: null
+    };
+
+    return state;
+  };
 
 
 
-//  va5.device.disposeAudioSource = function (as) {
-//    if (as === null) { return; }
-//    // WebAudio では、全てが自動でGC可能な筈。
-//    // ただブラウザ側の不具合でGCできない可能性もあり、
-//    // その場合はここで何らかの処理を行う必要があるかもしれない
-//    // TODO
-//  };
-//
-//  va5.device.audioSourceToDuration = function (as) {
-//    return as.duration;
-//  }
-//
-//
-//  function disconnectSafely (node) {
-//    if (node === null) { return; }
-//    try {
-//      node.disconnect();
-//    }
-//    catch (e) {
-//    }
-//  }
-//
-//  // これは音が鳴るところまでを実装した最小構成。これをベースに分解していき、間にキャッシュを入れたりしていく
-//  va5.device.playProto = function (path, opts) {
-//    if (ac === null) { return null; }
-//
-//    var pitch = opts["pitch"] || 1;
-//    var volume = opts["volume"] || 1;
-//    var pan = opts["pan"] || 0;
-//    var isLoop = !!opts["isLoop"];
-//    var loopStart = opts["loopStart"] || 0;
-//    var loopEnd = opts["loopEnd"]; // 偽値の場合は as.duration が採用される
-//    var startPos = opts["startPos"] || 0;
-//
-//    var playState = {};
-//    playState.phase = "loading";
-//
-//    // TODO: asは _cache を通じて取得するようにする(毎回ロードしたくない)
-//    //       ただしdevice自体は_cacheに依存しないようにする必要がある。
-//    //       (この事を考えると、playProtoの引数はpathではなくasになるべき)
-//    va5.device.loadAudioSource(path, function (as) {
-//      playState.phase = "loaded";
-//      if (!as) { return; }
-//      if (as["dummy"]) { return; }
-//
-//      var sourceNode = ac.createBufferSource();
-//      var gainNode = ac.createGain();
-//      sourceNode.buffer = as;
-//      sourceNode.playbackRate.value = pitch;
-//      gainNode.gain.value = volume;
-//      sourceNode.connect(gainNode);
-//      var pannerNodeType;
-//      var pannerNode;
-//      if (ac.createStereoPanner) {
-//        pannerNodeType = "stereoPannerNode";
-//        pannerNode = ac.createStereoPanner();
-//        pannerNode.pan.value = pan;
-//        gainNode.connect(pannerNode);
-//        pannerNode.connect(masterGainNode);
-//      }
-//      else if (ac.createPanner) {
-//        pannerNodeType = "pannerNode";
-//        pannerNode = ac.createPanner();
-//        pannerNode.panningModel = "equalpower";
-//        pannerNode.setPosition(pan, 0, 1-Math.abs(pan));
-//        gainNode.connect(pannerNode);
-//        pannerNode.connect(masterGainNode);
-//      }
-//      else {
-//        pannerNodeType = "none";
-//        pannerNode = null;
-//        gainNode.connect(masterGainNode);
-//      }
-//
-//      if (isLoop) {
-//        sourceNode.loop = true;
-//        sourceNode.loopStart = loopStart;
-//        sourceNode.loopEnd = loopEnd || as.duration;
-//      }
-//      else {
-//        sourceNode.onended(function () {
-//          var now = ac.currentTime;
-//          disconnectSafely(sourceNode);
-//          disconnectSafely(gainNode);
-//          disconnectSafely(pannerNode);
-//          playState.sourceNode = null;
-//          playState.gainNode = null;
-//          playState.pannerNode = null;
-//          playState.playEndTIme = now;
-//        });
-//      }
-//
-//      var now = ac.currentTime;
-//      playState.sourceNode = sourceNode;
-//      playState.gainNode = gainNode;
-//      playState.pannerNodeType = pannerNodeType;
-//      playState.pannerNode = pannerNode;
-//      playState.volume = volume;
-//      playState.pitch = pitch;
-//      playState.pan = pan;
-////                       :loop loop?
-////                       :started-pos start-pos
-////                       :play-start-time now
-//      playState.playEndTIme = null;
-//      playState.phase = "playing";
-//      sourceNode.start(now startPos);
+
 //    });
 //    return playState; // TODO: playStateではなくch(id値)を返すべき？
 //  };

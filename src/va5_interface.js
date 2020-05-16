@@ -18,6 +18,10 @@
   va5._logDebug = va5.Log.debug;
 
 
+  va5.getDeviceName = function () {
+    va5.init();
+    return va5.device.name;
+  };
 
 
 
@@ -26,13 +30,6 @@
 
   // 以下は古いコード
 
-//  va5.init = va5.Init.init;
-//
-//  va5.isAvailable = function () {
-//    va5.init();
-//    return va5.device.isAvailable();
-//  }
-//
 //  va5.playProto = function (path, opts) {
 //    va5._outputDebugLog(["called va5.playProto", path, opts]);
 //    init();
