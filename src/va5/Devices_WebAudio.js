@@ -239,12 +239,6 @@
   };
 
 
-
-
-//    });
-//    return playState; // TODO: playStateではなくch(id値)を返すべき？
-//  };
-
   // TODO: もっと機能を追加する必要あり
 
 })(this);
