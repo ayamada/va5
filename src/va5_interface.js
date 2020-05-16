@@ -67,6 +67,10 @@
     va5.Cache.getAllPaths().forEach(va5.Cache.unload);
   };
 
+  // NB: ロード済のpathのみ取得可能、未ロードの場合はnullが返る
+  //     WebAudio非対応の場合は0が返る、注意
+  //     単位はsec
+  va5.getDuration = va5.Cache.getDuration;
 
 
 

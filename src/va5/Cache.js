@@ -173,4 +173,12 @@
     if (!isRunningPreloadProcess) { preloadProcess(); }
   };
 
+
+  Cache.getDuration = function (path) {
+    var as = loadedAudioSourceTable[path];
+    if (!as) { return null; }
+    return va5.device.audioSourceToDuration(as);
+  };
+
+
 })(this);

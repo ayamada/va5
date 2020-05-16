@@ -72,28 +72,14 @@ TODO
 
 とりあえずdev.htmlが動くようにしていく。具体的にはどこから作っていく？
 
-
-- pathからasを生成するところ
-    - asの形式は？
-        - 生buf？
-            - 基本これだけでよいのだけど、デバッグ時に不便になりそうな気がするので、薄いObjectでラッピングする事に
-    - ここはロードが絡むので非同期にせざるをえない。形式を考える事
-        - 引数としてcontを渡すしかない(Promiseは使えない可能性がある)
-    - インターフェースは？
-        - ...
-- asから再生stateを生成して再生するところ
-    - インターフェースは？
-        - ...
-
-
-
-
-
+以下からプリミティブな部分から優先して実装していく
 
 インターフェース関数メモ
 
-- 所属不明
     - va5.getLength(path) NB: 単位はsec。ロード済でない場合はnullが返る
+        - 名前は getDuration() とかにする？こっちで。
+
+- 所属不明
     - va5.getBgmPosition(bgmCh, isIncludeLoopAmount) TODO: 要検討
     - va5.makePlaySePeriodically(intervalSec, path, opts) TODO: 要検討。高階関数なので扱いが分かりづらい
     - va5.makePlaySePersonally(fadeSec) TODO: 要検討。高階関数なので扱いが分かりづらい
@@ -111,27 +97,10 @@ TODO
     - va5.playSe(path, opts)
     - va5.alarm(path, opts)
         - これも廃止してよいかも(optsで指定可能にする方向で)
-- プリロード関連
-    - va5.load(path)
-    - va5.unload(path)
-    - va5.unloadAll()
-    - va5.isLoaded(path)
-    - va5.isError(path)
-- その他、ユーティリティ等
-    - va5.??? (旧hasTerminalType) TODO: 名前を考える事
-        - この判定はよくないのでは？
-        - 今回判定して弾く必要があるのは「ie/edge」系のみなので、それだけ専用判定を持てばよいのでは？
-            - しかし他にも要求される部分があるかも…。ただ window.navigator.userAgent での判定は完全に正確にはならないので、そもそも頼るべきではない
-        - 「古いモバイル環境だと強制オフにする」必要があるが、その判定をどうやるかも問題。これで判定するのはまずいのでは…
-    - va5.device.name => "WebAudio"
-    - va5.getLength(path) NB: 単位はsec。ロード済でない場合はnullが返る
-    - va5.getBgmPosition(bgmCh, isIncludeLoopAmount) TODO: 要検討
-    - va5.makePlaySePeriodically(intervalSec, path, opts) TODO: 要検討。高階関数なので扱いが分かりづらい
-    - va5.makePlaySePersonally(fadeSec) TODO: 要検討。高階関数なので扱いが分かりづらい
 
 
 
-- BGM再生コマンドのオプション指定について
+- va4のBGM再生コマンドのオプション指定について
     - volume 基準ボリューム。基本は[0.0-1.0]だが1以上を指定してもよい(マスターボリューム等が小さい時にのみ意味がある)
     - pitch
     - pan
@@ -144,7 +113,7 @@ TODO
         - 実装するか悩む
     - channel
 
-- SE再生コマンドのオプション指定について
+- va4のSE再生コマンドのオプション指定について
     - volume
     - pitch
     - pan
