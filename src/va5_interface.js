@@ -7,16 +7,19 @@
   //     実行される必要がある！要注意！！！
 
 
-  va5.config = va5.Config.config;
+  va5.config = va5.Config.data;
   // NB: va4とは違い、このconfig値の変更は現在再生中のものには影響を与えない。
   //     (変更したその後の再生/停止リクエストから影響を与える)
   //     volume-系の項目の変更時に、その内容を現在再生中のものに即座に
   //     適用したい場合は、変更後に明示的に va5.syncVolume(); を実行する事。
   va5.syncVolume = function () {
-    // TODO: あとで実装する事
+    // TODO: あとで実装する事(deviceとconfigの両方の参照が必要になる)
     throw new Error("not implemented yet");
   };
 
+
+  va5._logError = va5.Log.error;
+  va5._logDebug = va5.Log.debug;
 
 
 
@@ -158,4 +161,10 @@
 
   // 以上は古いコード
 
+
+  va5.floatToPercent = va5.Util.floatToPercent;
+  va5.percentToFloat = va5.Util.percentToFloat;
+
+
+  // va5.version; // これのみ va5_version.js で定義される
 })(this);
