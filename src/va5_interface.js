@@ -51,24 +51,16 @@
   va5.unload = function (path) {
     va5._logDebug(["called va5.unload", path]);
     va5.init();
-    // TODO: 事前に、このpathの全ての再生を即座に停止させる必要がある！！！！
-    //       この為には、BgmおよびSe側での再生チャンネルの管理が必要。
-    //       なので、あとで実装する事。
-    // TODO: race condition注意だが、「対象が現在再生中のBGM」かつ
-    //       「フェードアウト中」かつ「次のBGMが予約済」
-    //       の、全てを満たすのであれば、
-    //       BGMの停止後に「次のBGM」を再生する必要がある。
-    //       (unloadAllからの呼び出しでは、この処理をしてはいけない、
-    //       全てをunloadするのだから…)
+    va5.Bgm.shutdown(path);
+    va5.Se.shutdown(path);
     va5.Cache.unload(path);
   };
 
   va5.unloadAll = function () {
     va5._logDebug("called va5.unloadAll");
     va5.init();
-    // TODO: 事前に、全再生を即座に全て完全停止させる必要がある！！！！
-    //       この為には、BgmおよびSe側での再生チャンネルの管理が必要。
-    //       なので、あとで実装する事。
+    va5.Bgm.shutdownAll();
+    va5.Se.shutdownAll();
     va5.Cache.getAllPaths().forEach(va5.Cache.unload);
   };
 
