@@ -7,7 +7,6 @@
   // deviceにurlを渡す直前でのみ、この処理を行う事
   // (device以外では、pathが汎用keyとして使われる為)
   function appendQueryString (path) {
-    if (path == null) { return path; }
     var aqs = va5.config["additional-query-string"];
     if (aqs == null) { return path; }
     var combinator = "?";

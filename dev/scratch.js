@@ -50,6 +50,8 @@
 
   va5.config["is-output-error-log"] = true;
   va5.config["is-output-debug-log"] = true;
+  //va5.config["volume-master"] = 1;
+
   va5.init();
 
 

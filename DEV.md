@@ -24,14 +24,17 @@ TODO
 (gccのoptimizationsでmin化。externs対象は「va5直下の小文字で始まるエントリ」のみとなる。「_で始まるエントリ」はprivate(mungeしてok)、「大文字で始まるエントリ」はクラス名(mungeしてok)。トップレベル汚染はva5キーのみ)
 
 
-## オンラインデモのリリースビルド生成およびデプロイ手順
+## オンラインデモ兼リファレンスのリリースビルド生成およびデプロイ手順
 
 TODO
+
+そもそも、どういう奴にするのかから考える必要が…
 
 
 ## TODO
 
 - dev/prod.html と dev/prod.js の作成
+    - min版を生成したら、ここで動作確認を取る
     - これ dev/ というディレクトリ名をやめるべきでは？
         - devとprodの同居はした方がよい(同じ音源ファイルを参照したい)
         - いい名前を考える事
@@ -48,34 +51,18 @@ TODO
 
 ## 一時メモ
 
-
-- va5.config に設定できる値を制限したい
-    - volume等に文字列とか変な値とか入れられないようにしたい
-    - property変更の監視処理を入れ、そこで va5._assertNumber() とかを呼ぶようにする
+- Seの実装
 
 
 
 
-
-とりあえずdev.htmlが動くようにしていく。具体的にはどこから作っていく？
-
-スケジューラ不要なSEの方から実装してみる事に
-
-引数順をもう少し考えたい
-
-    - var seCh = va5.playSe(path, opts)
-    - var seCh = va5.se(path, opts)
-
-
-
-    - va5.stopSe(seCh, fadeSec)
 
 
 
     - va5.makePlaySePeriodically(intervalSec, path, opts) TODO: 要検討。高階関数なので扱いが分かりづらい
         - interface側でのみ提供
-    - va5.makePlaySePersonally(fadeSec) TODO: 要検討。高階関数なので扱いが分かりづらい
-        - interface側でのみ提供
+
+
 
 
 
@@ -83,8 +70,6 @@ TODO
 - 再生キューおよびマネージャの構造を考える必要がある
     - BGMはch毎にキューと状態を持つ必要がある
         - 「再生中BGM」を全て管理する必要がある(unloadの事を考えると、そうせざるをえない)
-    - SEは再生毎にchを生成する
-        - 「再生中SE」を全て管理する必要がある(unloadおよびse-chattering-secの為)
 
 
 
@@ -120,12 +105,6 @@ TODO
         - 実装するか悩む
     - channel
 
-- va4のSE再生コマンドのオプション指定について
-    - volume
-    - pitch
-    - pan
-    - channel TODO: これは元々はなかった。でも「古いSEを即座に停止して新しいSEを鳴らす」用途はmakePlaySePersonallyよりもこっちの方が筋が良いのでは？
-    - isAlarm TODO: alarm()関数廃止に伴い新設予定
 
 
 

@@ -3,6 +3,13 @@
   var va5 = exports.va5 || {}; exports.va5 = va5;
 
 
+  va5._assertNumber = va5.Assert.assertNumber;
+  va5._assertString = va5.Assert.assertString;
+  va5._assertPath = va5.Assert.assertPath;
+  va5._assertSeCh = va5.Assert.assertSeCh;
+  va5._assertBgmCh = va5.Assert.assertBgmCh;
+
+
   va5.config = va5.Config.data;
 
 
@@ -37,11 +44,6 @@
 
   va5._logError = va5.Log.error;
   va5._logDebug = va5.Log.debug;
-
-  va5._assertNumber = va5.Log.assertNumber;
-  va5._assertPath = va5.Log.assertPath;
-  va5._assertSeCh = va5.Log.assertSeCh;
-  va5._assertBgmCh = va5.Log.assertBgmCh;
 
 
   va5.init = va5.Init.init;
