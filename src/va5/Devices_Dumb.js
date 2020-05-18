@@ -14,22 +14,23 @@
   };
 
   device.disposeAudioSource = function (as) {
-    if (as === null) { return; }
+    if (as == null) { return; }
     as.disposed = true;
   };
 
   device.audioSourceToDuration = function (as) {
-    if (as === null) { return null; }
+    if (as == null) { return null; }
     if (as.disposed) { return null; }
     return 0;
   }
 
   device.loadAudioSource = function (path, cont) {
-    if (path === null) {
+    if (path == null) {
       va5._logError(["failed to load", path]);
       cont(null);
       return;
     }
+    path = va5._assertPath(path);
     cont({});
   };
 
@@ -37,14 +38,16 @@
     if (!as) { return null; }
     if (as.disposed) { return null; }
 
-    var volume = opts["volume"] || 1;
-    var pitch = opts["pitch"] || 1;
-    var pan = opts["pan"] || 0;
+    var volume = opts["volume"]; if (volume == null) { volume = 1; }
+    volume = va5._assertNumber("volume", 0, volume, 10);
+    var pitch = va5._assertNumber("pitch", 0.1, opts["pitch"]||1, 10);
+    var pan = va5._assertNumber("pan", -1, opts["pan"]||0, 1);
     var isLoop = !!opts["isLoop"];
-    var loopStart = opts["loopStart"] || 0;
-    var loopEnd = opts["loopEnd"] || 0;
-    var startPos = opts["startPos"] || 0;
+    var loopStart = va5._assertNumber("loopStart", 0, opts["loopStart"]||0, null);
+    var loopEnd = va5._assertNumber("loopEnd", null, opts["loopEnd"]||0, null);
+    var startPos = va5._assertNumber("startPos", 0, opts["startPos"]||0, null);
     var endPos = opts["endPos"] || null;
+    if (endPos != null) { endPos = va5._assertNumber("endPos", null, endPos, null); }
 
     var now = Date.now()/1000;
 
@@ -64,6 +67,10 @@
     };
 
     return state;
+  };
+
+  device.setVolumeMaster = function (volume) {
+    return;
   };
 
   // TODO

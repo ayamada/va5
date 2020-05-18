@@ -17,6 +17,7 @@
       va5.device.init();
     }
 
+    va5.device.setVolumeMaster(va5.config["volume-master"]);
     va5.Background.startSupervise(va5.Bgm.syncBackground);
     va5.Se.bootstrapPlayingAudioChannelPoolWatcher();
   }

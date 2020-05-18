@@ -13,12 +13,13 @@
   var initialData = {
     "is-output-error-log": true,
     "is-output-debug-log": false,
-    "volume-master": 0.6,
-    "volume-bgm": 0.6,
-    "volume-se": 0.6,
-    "volume-voice": 0.6, // TODO: 将来拡張予約
+    "volume-master": 0.8,
+    "volume-bgm": 0.5,
+    "volume-se": 0.5,
+    "volume-voice": 0.5, // TODO: 将来拡張予約
     "default-bgm-fade-sec": 1,
     "default-se-fade-sec": 0,
+    "default-voice-fade-sec": 0.1, // TODO: 将来拡張予約
     "is-pause-on-background": true,
     "se-chattering-sec": 0.05,
     "additional-query-string": null

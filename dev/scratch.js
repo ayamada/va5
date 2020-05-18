@@ -60,7 +60,7 @@
     var path = "./kick.m4a";
     va5.load(path, function (as) {
       console.log("loaded", as);
-      console.log("duration", va5.device.audioSourceToDuration(as));
+      //console.log("duration", va5.device.audioSourceToDuration(as));
       var opts = {
         // TODO
       };

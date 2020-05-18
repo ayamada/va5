@@ -18,64 +18,62 @@ http://localhost:8001/dev/dev.html
 TODO
 
 
+## オンラインデモのリリースビルド生成およびデプロイ手順
+
+TODO
+
+以下、リリースビルドの為の処理の一時メモ
+
+(src/va5_version.jsの更新)
+(最終的には cat src/va5/*.js とかで一つのファイルにする)
+(gccのoptimizationsでmin化。externs対象は「va5直下の小文字で始まるエントリ」のみとなる。「_で始まるエントリ」はprivate(mungeしてok)、「大文字で始まるエントリ」はクラス名(mungeしてok)。トップレベル汚染はva5キーのみ)
+
+
 ## TODO
 
 - android実機およびiOSエミュでの動作確認を取る
     - タッチのみで動作確認が取れるところまで実装を進める事
 
-- Promise を返す、load() のラッパーを用意
-    - Promiseを返すようにしたくはあるのだが、当初はなしにし、後で余裕のある時に実装する事に。以下がその理由
-        - Promiseが存在しない環境(ieおよび古いiOS)がありえる事
-        - 「非対応環境では音が出ない」は普通に許されるが「例外が投げられて動作に支障が出る」「thenが実行されない」というのはかなり許されない。具体的にはWebAudioを持たないie等の環境であっても「load()を実行したらthenが実行される」という部分は必須となってしまう(Promiseを返す仕様にするのであれば)
-        - なるべく他のライブラリに頼らないようにしたいので既存のpolyfillを導入したくない
-        - つまり、Promiseを返すようにしたいのであれば(ie等の環境専用の)自前のpolyfill実装が必要となる。面倒な割に報われない作業なので後回しにする
-    - 名前は loadP() とかでいいと思う。また、これが必要なのはload()のみの想定
-        - 他に「完了を待ちたい」処理としてplay系があるものの、これはdumb環境だと一瞬で終わらせる以外になく、それは望ましい挙動ではないが他にどうしようもない(durationが取れないので「音源の長さだけ待つ」事すらできない)ので、最初からPromise版は提供しない方向とするしかない。loadについては一瞬で終わっても何の問題もないのでPromise版を提供したい
-
-
-## オンラインデモのリリースビルド生成およびデプロイ手順
-
-TODO
-
-(src/va5_version.jsの更新)
-
-(最終的には cat src/va5/*.js とかで一つのファイルにする)
-
-(gccのoptimizationsでmin化。externs対象は「va5直下の小文字で始まるエントリ」のみとなる。「大文字で始まるエントリ」は(extern対象でない)クラス名なので注意。トップレベル汚染はva5キーのみ)
-
-
-## 仕様メモ
-
-- va5での新仕様
-    - jsのみ
-    - ビルドはMakefileかshスクリプトかなんかで行う。webpackは使わない
-        - gccのoptimizationsで圧縮する。externsファイルも用意する
-    - deviceレイヤの分離はva4同様に行うが、HtmlAudio対応はしない。WebAudioとdumbのみ用意する
-        - 将来にelectron対応等しやすいようにしておく
-    - ie非対応。無音で通す
-        - edgeについては一応通す
-            - edgeでdecodeに失敗する可能性のある可変ビットレートmp3は諦める。m4a推奨とする
-    - 古いスマホ非対応。無音で通す
-        - どう判定するかが問題。WebAudio非対応なら問題ないが、中途半端に対応している時期のものが問題になる
-    - 音源のfallback(wildcard)指定は廃止。指定した音源が再生できないものだった場合は無音で通す
-        - 推奨形式はm4a。次点で固定ビットレートのmp3。ogg等は再生できない環境があるという事が分かっているなら指定できる(electron実行のみ等で)
-
-- va4から引き継ぐべき仕様について
-    - va4の各種バッドノウハウ対策を組み込む
-    - https://qiita.com/zprodev/items/7fcd8335d7e8e613a01f - にあるリーク対策等を組み込む
-
 
 ## 一時メモ
+
+
+scratch.html => dev.html に更新
+jsファイルはscratch.jsのままにしとく
+
+
+va5.device を va5._device にrenameしてまわる事
+
+
+
+
+- va5.config に設定できる値を制限したい
+    - volume等に文字列とか変な値とか入れられないようにしたい
+    - property変更の監視処理を入れ、そこで va5._assertNumber() とかを呼ぶようにする
+
 
 
 
 
 とりあえずdev.htmlが動くようにしていく。具体的にはどこから作っていく？
 
-以下からプリミティブな部分から優先して実装していく
+スケジューラ不要なSEの方から実装してみる事に
 
-インターフェース関数メモ
+引数順をもう少し考えたい
 
+    - var seCh = va5.playSe(path, opts)
+    - var seCh = va5.se(path, opts)
+
+
+
+    - va5.stopSe(seCh, fadeSec)
+
+
+
+    - va5.makePlaySePeriodically(intervalSec, path, opts) TODO: 要検討。高階関数なので扱いが分かりづらい
+        - interface側でのみ提供
+    - va5.makePlaySePersonally(fadeSec) TODO: 要検討。高階関数なので扱いが分かりづらい
+        - interface側でのみ提供
 
 
 
@@ -89,27 +87,21 @@ TODO
 
 
 
-
 - BGM専用
     - va5.getBgmPosition(bgmCh, isIncludeLoopAmount) TODO: 要検討
+        - これは音ゲー実装時に必要になる。
+        - また内部でバックグラウンド時の一時停止時にも使う
 
-- SE専用
-    - va5.makePlaySePeriodically(intervalSec, path, opts) TODO: 要検討。高階関数なので扱いが分かりづらい
-    - va5.makePlaySePersonally(fadeSec) TODO: 要検討。高階関数なので扱いが分かりづらい
-
-- 再生/停止
-    - va5.stopBgm(fadeSec, bgmCh)
-        - 引数の形式を変更した方がよいかもしれない
     - va5.playBgm(path, opts)
+    - va5.bgm(path, opts)
         - va4にあった bgmOneshot bgmFadein は廃止(optsで指定可能なので)
         - va4にあった me bgs は廃止(chを明示的に指定すればすむ話なので)
         - 新オプションとして「今流してるoneshotのが終わったら次にこれを再生する」オプションを追加
         - 新オプションとして「ループポイント指定」オプションを追加する？しない？
-    - va5.stopSe(fadeSec, seCh)
+
+    - va5.stopBgm(bgmCh, fadeSec)
+    - va5.stopBgm(fadeSec)
         - 引数の形式を変更した方がよいかもしれない
-    - va5.playSe(path, opts)
-    - va5.alarm(path, opts)
-        - これも廃止してよいかも(optsで指定可能にする方向で)
 
 
 
@@ -133,6 +125,45 @@ TODO
     - channel TODO: これは元々はなかった。でも「古いSEを即座に停止して新しいSEを鳴らす」用途はmakePlaySePersonallyよりもこっちの方が筋が良いのでは？
     - isAlarm TODO: alarm()関数廃止に伴い新設予定
 
+
+
+## 仕様一時メモ
+
+あとで消すか、「その他のメモ」に移動させる事
+
+- va5での新仕様
+    - jsのみ
+    - ビルドはMakefileかshスクリプトかなんかで行う。webpackは使わない
+        - gccのoptimizationsで圧縮する。externsファイルも用意する
+    - deviceレイヤの分離はva4同様に行うが、HtmlAudio対応はしない。WebAudioとdumbのみ用意する
+        - 将来にelectron対応等しやすいようにしておく
+    - ie非対応。無音で通す
+        - edgeについては一応通す
+            - edgeでdecodeに失敗する可能性のある可変ビットレートmp3は諦める。m4a推奨とする
+    - 古いスマホ非対応。無音で通す
+        - どう判定するかが問題。WebAudio非対応なら問題ないが、中途半端に対応している時期のものが問題になる
+    - 音源のfallback(wildcard)指定は廃止。指定した音源が再生できないものだった場合は無音で通す
+        - 推奨形式はm4a。次点で固定ビットレートのmp3。ogg等は再生できない環境があるという事が分かっているなら指定できる(electron実行のみ等で)
+
+- va4から引き継ぐべき仕様について
+    - va4の各種バッドノウハウ対策を組み込む
+    - https://qiita.com/zprodev/items/7fcd8335d7e8e613a01f - にあるリーク対策等を組み込む
+
+- voice実装メモ(未実装)
+    - 扱いとしてはseではなく、「oneshotのみのbgm」的な扱いにする
+        - 各チャンネルでの同時発声数を1に抑える為
+
+
+
+
+## その他のメモ
+
+- assertを仕込む際のルール
+    - play, stop, load等の「副作用を伴う処理」に型違いの引数が渡された場合は例外を投げる
+        - 引数の数値に範囲外の値が指定された場合は例外を投げない。内部で勝手に丸め込んで処理する
+        - config値の変更もこの「副作用を伴う処理」の一種とする
+    - get等の「副作用を伴わない情報取得」に型違いの引数が渡された場合は例外は投げない。適当な失敗値を返す
+        - config値の参照もこの「副作用を伴わない情報取得」の一種とする
 
 
 

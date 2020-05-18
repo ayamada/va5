@@ -62,7 +62,7 @@
 
 
   device.disposeAudioSource = function (as) {
-    if (as === null) { return; }
+    if (as == null) { return; }
     if (as.disposed) { return; }
     // WebAudio では、全てが自動でGC可能な筈。
     // ただブラウザ側の不具合でGCできない可能性もあり、
@@ -73,7 +73,7 @@
 
 
   device.audioSourceToDuration = function (as) {
-    if (as === null) { return null; }
+    if (as == null) { return null; }
     if (as.disposed) { return null; }
     if (!as.buf) { return null; }
     return as.buf.duration;
@@ -96,8 +96,9 @@
       cont(null);
       return;
     }
-    if (path === null) { errorEnd1(); return; }
-    if (ac === null) {
+    if (path == null) { errorEnd1(); return; }
+    path = va5._assertPath(path);
+    if (ac == null) {
       va5._logDebug(["disabled WebAudio", path]);
       cont(null); // TODO: 可能ならダミーのasを返して成功扱いにしたい
       return;
@@ -133,7 +134,7 @@
 
   // WebAudioのnodeを安全にdisconnectする為のラッパー。大した事はしていない
   function disconnectSafely (node) {
-    if (node === null) { return; }
+    if (node == null) { return; }
     try { node.disconnect(); } catch (e) {}
   }
 
@@ -146,14 +147,16 @@
     if (!as.buf) { return null; }
     var buf = as.buf;
 
-    var volume = opts["volume"] || 1;
-    var pitch = opts["pitch"] || 1;
-    var pan = opts["pan"] || 0;
+    var volume = opts["volume"]; if (volume == null) { volume = 1; }
+    volume = va5._assertNumber("volume", 0, volume, 10);
+    var pitch = va5._assertNumber("pitch", 0.1, opts["pitch"]||1, 10);
+    var pan = va5._assertNumber("pan", -1, opts["pan"]||0, 1);
     var isLoop = !!opts["isLoop"];
-    var loopStart = opts["loopStart"] || 0;
-    var loopEnd = opts["loopEnd"] || buf.duration;
-    var startPos = opts["startPos"] || 0;
+    var loopStart = va5._assertNumber("loopStart", 0, opts["loopStart"]||0, null);
+    var loopEnd = va5._assertNumber("loopEnd", null, opts["loopEnd"]||buf.duration, null);
+    var startPos = va5._assertNumber("startPos", 0, opts["startPos"]||0, null);
     var endPos = opts["endPos"] || null;
+    if (endPos != null) { endPos = va5._assertNumber("endPos", null, endPos, null); }
 
     var sourceNode = ac.createBufferSource();
     var gainNode = ac.createGain();
@@ -236,6 +239,11 @@
     };
 
     return state;
+  };
+
+  device.setVolumeMaster = function (volume) {
+    masterGainNode.gain.value = volume;
+    return;
   };
 
 

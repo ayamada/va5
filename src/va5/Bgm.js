@@ -12,6 +12,8 @@
   //       (unloadAllからの呼び出しでは、この処理をしてはいけない、
   //       全てをunloadするのだから…)
   Bgm.shutdown = function (path) {
+    if (path == null) { return; }
+    path = va5._assertPath(path);
     // TODO
   };
 

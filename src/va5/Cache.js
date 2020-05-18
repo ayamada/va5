@@ -7,9 +7,9 @@
   // deviceにurlを渡す直前でのみ、この処理を行う事
   // (device以外では、pathが汎用keyとして使われる為)
   function appendQueryString (path) {
-    if (path === null) { return path; }
+    if (path == null) { return path; }
     var aqs = va5.config["additional-query-string"];
-    if (aqs === null) { return path; }
+    if (aqs == null) { return path; }
     var combinator = "?";
     if (0 <= path.indexOf("?")) { combinator = "&"; }
     return path + combinator + aqs;
@@ -113,6 +113,8 @@
   //     必要なら、unloadを呼ぶ前にこのpathに対する全ての再生を
   //     完全停止させておく事！
   Cache.unload = function (path) {
+    if (path == null) { return; }
+    path = va5._assertPath(path);
     cancelLoading(path);
     if (Cache.isLoaded(path)) {
       var as = loadedAudioSourceTable[path];
@@ -164,6 +166,8 @@
   // 通常loadはこの後にplayする為に実行するので、
   // どちらの場合であってもplayをスキップすればよい。
   Cache.load = function (path, cont) {
+    if (path == null) { return; }
+    path = va5._assertPath(path);
     var entry = {
       path: path,
       cont: cont,
@@ -175,6 +179,7 @@
 
 
   Cache.getDuration = function (path) {
+    if (path == null) { return null; }
     var as = loadedAudioSourceTable[path];
     if (!as) { return null; }
     return va5.device.audioSourceToDuration(as);
