@@ -12,7 +12,7 @@
   //     適用したい場合は、変更後に明示的に va5.syncVolume(); を実行する事。
   va5.syncVolumeMaster = function () {
     va5.init();
-    va5.device.setVolumeMaster(va5.config["volume-master"]);
+    va5._device.setVolumeMaster(va5.config["volume-master"]);
 
   };
 
@@ -49,7 +49,7 @@
 
   va5.getDeviceName = function () {
     va5.init();
-    return va5.device.name;
+    return va5._device.name;
   };
 
 

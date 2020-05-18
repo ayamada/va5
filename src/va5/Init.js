@@ -11,13 +11,13 @@
     // NB: ここを拡張する事で、WebAudio以外の音源にも対応できる。
     //     (例えばelectron等)
     //     対応がない場合はDumb(無音)にしておく事
-    va5.device = va5.Devices.WebAudio;
-    if (!va5.device.init()) {
-      va5.device = va5.Devices.Dumb;
-      va5.device.init();
+    va5._device = va5.Devices.WebAudio;
+    if (!va5._device.init()) {
+      va5._device = va5.Devices.Dumb;
+      va5._device.init();
     }
 
-    va5.device.setVolumeMaster(va5.config["volume-master"]);
+    va5._device.setVolumeMaster(va5.config["volume-master"]);
     va5.Background.startSupervise(va5.Bgm.syncBackground);
     va5.Se.bootstrapPlayingAudioChannelPoolWatcher();
   }

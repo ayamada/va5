@@ -118,7 +118,7 @@
     cancelLoading(path);
     if (Cache.isLoaded(path)) {
       var as = loadedAudioSourceTable[path];
-      va5.device.disposeAudioSource(as);
+      va5._device.disposeAudioSource(as);
       delete loadedAudioSourceTable[path];
     }
   };
@@ -145,7 +145,7 @@
         if (cont) { cont(loadedAudioSourceTable[path]); }
         continue;
       }
-      va5.device.loadAudioSource(appendQueryString(path), function (as) {
+      va5._device.loadAudioSource(appendQueryString(path), function (as) {
         preloadRequestQueue.shift();
         loadedAudioSourceTable[path] = as;
         if (cont) { cont(as); }
@@ -182,7 +182,7 @@
     if (path == null) { return null; }
     var as = loadedAudioSourceTable[path];
     if (!as) { return null; }
-    return va5.device.audioSourceToDuration(as);
+    return va5._device.audioSourceToDuration(as);
   };
 
 

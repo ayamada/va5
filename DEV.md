@@ -49,11 +49,6 @@ TODO
 ## 一時メモ
 
 
-va5.device を va5._device にrenameしてまわる事
-
-
-
-
 - va5.config に設定できる値を制限したい
     - volume等に文字列とか変な値とか入れられないようにしたい
     - property変更の監視処理を入れ、そこで va5._assertNumber() とかを呼ぶようにする
