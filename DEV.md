@@ -17,11 +17,6 @@ http://localhost:8001/dev/dev.html
 
 TODO
 
-
-## オンラインデモのリリースビルド生成およびデプロイ手順
-
-TODO
-
 以下、リリースビルドの為の処理の一時メモ
 
 (src/va5_version.jsの更新)
@@ -29,17 +24,29 @@ TODO
 (gccのoptimizationsでmin化。externs対象は「va5直下の小文字で始まるエントリ」のみとなる。「_で始まるエントリ」はprivate(mungeしてok)、「大文字で始まるエントリ」はクラス名(mungeしてok)。トップレベル汚染はva5キーのみ)
 
 
+## オンラインデモのリリースビルド生成およびデプロイ手順
+
+TODO
+
+
 ## TODO
+
+- dev/prod.html と dev/prod.js の作成
+    - これ dev/ というディレクトリ名をやめるべきでは？
+        - devとprodの同居はした方がよい(同じ音源ファイルを参照したい)
+        - いい名前を考える事
+            - resources/public/
+            - public_html/
+            - ...
+            - ...
+            - ...
+
 
 - android実機およびiOSエミュでの動作確認を取る
     - タッチのみで動作確認が取れるところまで実装を進める事
 
 
 ## 一時メモ
-
-
-scratch.html => dev.html に更新
-jsファイルはscratch.jsのままにしとく
 
 
 va5.device を va5._device にrenameしてまわる事
