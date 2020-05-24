@@ -13,28 +13,15 @@
   va5.config = va5.Config.data;
 
 
-  // NB: va4とは違い、config値の変更は現在再生中のものには影響を与えない。
-  //     (変更したその後の再生/停止リクエストから影響を与える)
-  //     volume-系の項目の変更時に、その内容を現在再生中のものに即座に
-  //     適用したい場合は、変更後に明示的に va5.syncVolume(); を実行する事。
-  va5.syncVolumeMaster = function () {
-    va5.init();
-    va5._device.setVolumeMaster(va5.config["volume-master"]);
-
-  };
-
+  // TODO: これらはConfig内に移行させる事
   va5.syncVolumeBgm = function () {
     va5.init();
-    // TODO: あとで実装する
-    throw new Error("not implemented yet");
+    va5.Bgm.setVolumeBgm(va5.config["volume-bgm"]);
   };
-
   va5.syncVolumeSe = function () {
     va5.init();
-    // TODO: あとで実装する
-    throw new Error("not implemented yet");
+    va5.Se.setVolumeSe(va5.config["volume-se"]);
   };
-
   va5.syncVolumeVoice = function () {
     va5.init();
     // TODO: あとで実装する
@@ -57,6 +44,7 @@
 
   va5.floatToPercent = va5.Util.floatToPercent;
   va5.percentToFloat = va5.Util.percentToFloat;
+  va5.getNowMsec = va5.Util.getNowMsec;
 
 
   va5.isLoading = va5.Cache.isLoading;
@@ -73,16 +61,16 @@
   va5.unload = function (path) {
     va5._logDebug(["called va5.unload", path]);
     va5.init();
-    va5.Bgm.shutdown(path);
-    va5.Se.shutdown(path);
+    va5.Bgm.stopImmediatelyByPath(path);
+    va5.Se.stopImmediatelyByPath(path);
     va5.Cache.unload(path);
   };
 
   va5.unloadAll = function () {
     va5._logDebug("called va5.unloadAll");
     va5.init();
-    va5.Bgm.shutdownAll();
-    va5.Se.shutdownAll();
+    va5.Bgm.stopImmediatelyAll();
+    va5.Se.stopImmediatelyAll();
     va5.Cache.getAllPaths().forEach(va5.Cache.unload);
   };
 

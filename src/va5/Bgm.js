@@ -4,6 +4,11 @@
   var Bgm = va5.Bgm || {}; va5.Bgm = Bgm;
 
 
+  Bgm.setVolumeBgm = function (newVolume, isInit) {
+    // TODO
+  };
+
+
   // pathに対応する再生を即座に停止する。予約も解除する
   // TODO: race condition注意だが、「対象が現在再生中のBGM」かつ
   //       「フェードアウト中」かつ「次のBGMが予約済」
@@ -11,14 +16,14 @@
   //       BGMの停止後に「次のBGM」を再生する必要がある。
   //       (unloadAllからの呼び出しでは、この処理をしてはいけない、
   //       全てをunloadするのだから…)
-  Bgm.shutdown = function (path) {
+  Bgm.stopImmediatelyByPath = function (path) {
     if (path == null) { return; }
     path = va5._assertPath(path);
     // TODO
   };
 
 
-  Bgm.shutdownAll = function () {
+  Bgm.stopImmediatelyAll = function () {
     // TODO
   };
 

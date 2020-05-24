@@ -18,6 +18,11 @@
     as.disposed = true;
   };
 
+  device.disposePlayingState = function (state) {
+    if (state == null) { return; }
+    state.disposed = true;
+  };
+
   device.audioSourceToDuration = function (as) {
     if (as == null) { return null; }
     if (as.disposed) { return null; }
@@ -49,7 +54,7 @@
     var endPos = opts["endPos"] || null;
     if (endPos != null) { endPos = va5._assertNumber("endPos", null, endPos, null); }
 
-    var now = Date.now()/1000;
+    var now = va5.getNowMsec() / 1000;
 
     var state = {
       as: as,
@@ -68,6 +73,20 @@
 
     return state;
   };
+
+
+  device.setVolume = function (state, newVolume) {
+    state.volume = newVolume;
+  };
+
+  device.setPitch = function (state, newPitch) {
+    state.pitch = newPitch;
+  };
+
+  device.setPan = function (state, newPan) {
+    state.pan = newPan;
+  };
+
 
   device.setVolumeMaster = function (volume) {
     return;

@@ -30,7 +30,7 @@
     // 今も必要なのか分からないが一応行っておく。
     // ただし、これが例外を投げてしまう場合があるのでtryで囲む必要がある。
     // (closeがない等のケースがあるようだ)
-    try { (new AudioContext()).close(); } catch (e) {}
+    try { (new AudioContext()).close(); } catch (e) { va5._logDebug(e); }
     // 今度は正式にacを生成する
     try {
       ac = new AudioContext();
@@ -38,6 +38,7 @@
     catch (e) {
       ac = null;
       va5._logError("could not create AudioContext");
+      va5._logDebug(e);
       return false;
     }
 
@@ -45,7 +46,7 @@
     //       - (chromeでない)android標準ブラウザはWebAudio非対応なので自動的に除外されるので問題ない
     //       - 問題は、WebAudioに中途半端にしか対応していない環境。これをどうにかして検出する必要がある…
     if (false) {
-      try { ac.close(); } catch (e) {}
+      try { ac.close(); } catch (e) { va5._logDebug(e); }
       ac = null;
       va5._logError("too old WebAudio, disable forcibly");
       return false;
@@ -61,6 +62,43 @@
   };
 
 
+  // NB: これはcurrentTimeを提供していないデバイスでは実装してはいけない。
+  //     (どうしても実装する場合はnullを返すようにする事)
+  device.getCurrentTime = function () { return ac.currentTime; };
+
+
+  function disconnectSafely (node) {
+    if (node == null) { return; }
+    try { node.disconnect(); } catch (e) { va5._logDebug(e); }
+  }
+
+  function stopSafely (state) {
+    if (!state) { return; }
+    if (state.disposed) { return; }
+    if (!state.sourceNode) { return; }
+    // NB: race conditionがありえるので、tryで囲む
+    try { state.sourceNode.stop(); } catch (e) { va5._logDebug(e); }
+  }
+
+  function shutdownPlayingState (state) {
+    if (!state) { return; }
+    if (state.disposed) { return; }
+    // stopSafelyによって onended が発生する可能性があるので、
+    // 先にdisposedフラグを立てておく(onendedが発生しても二重実行を防げる)
+    state.disposed = true;
+    state.playEndTime = va5.getNowMsec() / 1000;
+
+    stopSafely(state);
+    disconnectSafely(state.sourceNode);
+    disconnectSafely(state.gainNode);
+    disconnectSafely(state.pannerNode);
+    if (state.sourceNode) { state.sourceNode.onended = null; }
+    state.sourceNode = null;
+    state.gainNode = null;
+    state.pannerNode = null;
+  }
+
+
   device.disposeAudioSource = function (as) {
     if (as == null) { return; }
     if (as.disposed) { return; }
@@ -69,6 +107,14 @@
     // その場合はここで何らかの処理を行う必要があるかもしれない
     as.buf = null;
     as.disposed = true;
+  };
+
+
+  device.disposePlayingState = function (state) {
+    shutdownPlayingState(state);
+    // WebAudio では、全てが自動でGC可能な筈。
+    // ただブラウザ側の不具合でGCできない可能性もあり、
+    // その場合はここで何らかの処理を行う必要があるかもしれない
   };
 
 
@@ -117,26 +163,20 @@
         ac.decodeAudioData(xhr.response, function (buf) {
           if (!buf) { errorEnd2(); return; }
           // NB: buf以外の情報はこの外側で付与する。
-          //     ここに渡ってくるpathはquery付きなので、ここでは含めない事！
+          //     ここに渡ってくるpathはquery付き、ここでpathを含めない事！
           var as = {buf: buf};
           cont(as);
           return;
         }, errorEnd2);
       }
       catch (e) {
+        va5._logDebug(e);
         errorEnd2();
         return;
       }
     };
     xhr.send();
   };
-
-
-  // WebAudioのnodeを安全にdisconnectする為のラッパー。大した事はしていない
-  function disconnectSafely (node) {
-    if (node == null) { return; }
-    try { node.disconnect(); } catch (e) {}
-  }
 
 
   // stateを返す。stateは再生状況に応じて変化する
@@ -193,15 +233,7 @@
       sourceNode.loopEnd = loopEnd;
     }
     else {
-      sourceNode.onended = function () {
-        disconnectSafely(sourceNode);
-        disconnectSafely(gainNode);
-        disconnectSafely(pannerNode);
-        state.sourceNode = null;
-        state.gainNode = null;
-        state.pannerNode = null;
-        state.playEndTime = ac.currentTime || (Date.now()/1000);
-      };
+      sourceNode.onended = function () { shutdownPlayingState(state); };
     }
 
     var offset = startPos;
@@ -216,7 +248,7 @@
       sourceNode.start(0, offset);
     }
 
-    var now = ac.currentTime || (Date.now()/1000);
+    var now = va5.getNowMsec() / 1000;
 
     var state = {
       as: as,
@@ -240,6 +272,57 @@
 
     return state;
   };
+
+
+  device.getVolume = function (state) { return state.volume; };
+
+  device.getPitch = function (state) { return state.pitch; };
+
+  device.getPan = function (state) { return state.pan; };
+
+  device.setVolume = function (state, newVolume) {
+    state.volume = newVolume;
+    // NB: race conditionがありえるので、tryで囲む
+    try {
+      if (state.gainNode) { state.gainNode.gain.value = newVolume; }
+    }
+    catch (e) { va5._logDebug(e); }
+  };
+
+  // NB: va4では「startPosは今この瞬間」となるように書き換える事で、
+  //     正確なelapsedを算出できるようにしていた。
+  //     va5でも同様の対応が必要かは悩むが、今は入れない事にする
+  //     (これがなくても「現在何％再生したところか」は取れる。
+  //     ただそれだとループを含んだ再生位置情報が取れず、
+  //     ループ楽曲で音ゲーを作るような際に困るかもしれない)
+  device.setPitch = function (state, newPitch) {
+    state.pitch = newPitch;
+    // NB: race conditionがありえるので、tryで囲む
+    try {
+      if (state.sourceNode) { state.sourceNode.playbackRate.value = newPitch; }
+    }
+    catch (e) { va5._logDebug(e); }
+  };
+
+  device.setPan = function (state, newPan) {
+    state.pan = newPan;
+    // NB: race conditionがありえるので、tryで囲む
+    try {
+      if (state.pannerNode) {
+        if (state.pannerNodeType === "stereoPannerNode") {
+          state.pannerNode.pan.value = newPan;
+        }
+        else if (state.pannerNodeType === "pannerNode") {
+          state.pannerNode.setPosition(newPan, 0, 1-Math.abs(newPan));
+        }
+        else {
+          throw new Error("unknown pannerNodeType: "+state.pannerNodeType);
+        }
+      }
+    }
+    catch (e) { va5._logDebug(e); }
+  };
+
 
   device.setVolumeMaster = function (volume) {
     masterGainNode.gain.value = volume;

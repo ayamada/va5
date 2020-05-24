@@ -58,10 +58,10 @@
   console.log("device type:", va5.getDeviceName());
 
 
-  va5.hoge = function () {
+  window.hoge = function () {
     var path = "./kick.m4a";
     va5.load(path, function (as) {
-      console.log("loaded", as);
+      //console.log("loaded", as);
       //console.log("duration", va5._device.audioSourceToDuration(as));
       var opts = {
         // TODO

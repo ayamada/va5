@@ -37,18 +37,24 @@
     get "volume-master" () { return d["volume-master"]; },
     set "volume-master" (v) {
       d["volume-master"] = va5._assertNumber("volume-master", 0, v, 1);
+      if (va5._device) {
+        va5._device.setVolumeMaster(d["volume-master"]);
+      }
     },
     get "volume-bgm" () { return d["volume-bgm"]; },
     set "volume-bgm" (v) {
       d["volume-bgm"] = va5._assertNumber("volume-bgm", 0, v, 1);
+      va5.Bgm.setVolumeBgm(d["volume-bgm"]);
     },
     get "volume-se" () { return d["volume-se"]; },
     set "volume-se" (v) {
       d["volume-se"] = va5._assertNumber("volume-se", 0, v, 1);
+      va5.Se.setVolumeSe(d["volume-se"]);
     },
     get "volume-voice" () { return d["volume-voice"]; },
     set "volume-voice" (v) {
       d["volume-voice"] = va5._assertNumber("volume-voice", 0, v, 1);
+      //va5.Voice.setVolumeVoice(d["volume-voice"]); // TODO
     },
     get "default-bgm-fade-sec" () { return d["default-bgm-fade-sec"]; },
     set "default-bgm-fade-sec" (v) {
