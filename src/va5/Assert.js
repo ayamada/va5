@@ -27,7 +27,7 @@
 
   Assert.assertSeCh = function (v) {
     Assert.assertString("se-channel-id", v);
-    if (!v.match(/^sech\d\d\d\d\d\d\d\d$/)) {
+    if (!v.match(/^sech\d\d\d\d$/)) {
       throw new Error("invalid se-channel-id " + v + " (" + typeof v + ")");
     }
     return v;

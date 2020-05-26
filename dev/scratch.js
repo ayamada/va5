@@ -23,11 +23,10 @@
   appRoot.style.margin = "1em";
   appRoot.style.padding = "1em";
 
-  appRoot.appendChild(makeButton("va5.playProto('./kick.m4a')", function (label) {
-    eval(label);
-  }));
-
-  appRoot.appendChild(document.createElement("br"));
+  //appRoot.appendChild(makeButton("va5.playProto('./kick.m4a')", function (label) {
+  //  eval(label);
+  //}));
+  //appRoot.appendChild(document.createElement("br"));
 
   appRoot.appendChild(makeButton("va5.playSe('./kick.m4a')", function (label) {
     eval(label);
@@ -57,20 +56,21 @@
 
   console.log("device type:", va5.getDeviceName());
 
-
-  window.hoge = function () {
-    var path = "./kick.m4a";
-    va5.load(path, function (as) {
-      //console.log("loaded", as);
-      //console.log("duration", va5._device.audioSourceToDuration(as));
-      var opts = {
-        // TODO
-      };
-      var state = va5._device.play(as, opts);
-      console.log("played", state);
-    });
+  window.chch = function () {
+    va5.se("./kick.m4a", {});
+    va5.se("./kick.m4a", {pitch:0.5});
   };
 
+  var ch = null;
+  window.ppp = function () {
+    ch = va5.se("./cntr.m4a", {channel: ch});
+  };
+
+  window.sss = function () {
+    if (!ch) { return; }
+    //va5.stopSe(ch);
+    va5.stopSe(ch, 1);
+  };
 
 
 

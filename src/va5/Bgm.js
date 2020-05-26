@@ -4,7 +4,10 @@
   var Bgm = va5.Bgm || {}; va5.Bgm = Bgm;
 
 
-  Bgm.setVolumeBgm = function (newVolume, isInit) {
+  // 全BGM共通の音量倍率
+  var baseVolume = 1;
+
+  Bgm.setBaseVolume = function (newVolume, isInit) {
     // TODO
   };
 

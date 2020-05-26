@@ -15,19 +15,19 @@
 
 
   // 全SE共通の音量倍率
-  var commonVolumeSe = 1;
+  var baseVolume = 1;
 
-  Se.setVolumeSe = function (newVolumeSe, isInit) {
-    var oldVolumeSe = commonVolumeSe;
-    commonVolumeSe = newVolumeSe;
+  Se.setBaseVolume = function (newVolumeSe, isInit) {
+    var oldBaseVolume = baseVolume;
+    baseVolume = newVolumeSe;
     if (isInit) { return; }
-    Object.vals(pathToSeChs).forEach(function (ch) {
+    Object.values(pathToSeChs).forEach(function (ch) {
       var state = seChToState[ch];
       if (!state) { return; }
       if (!state.playingState) { return; }
       // フェード中は音量再計算がややこしいのでパスする
       if (state.fading) { return; }
-      var volumeTrue = state.volume * commonVolumeSe;
+      var volumeTrue = state.volume * baseVolume;
       state.volumeTrue = volumeTrue;
       va5._device.setVolume(state.playingState, volumeTrue);
     });
@@ -52,7 +52,7 @@
 
     // 各テーブルから除去する
     delete seChToState[ch];
-    var path = state.as.path;
+    var path = state.path;
     var chans = pathToSeChs[path] || [];
     chans = chans.filter(function (ctmp) {
       return (ch !== ctmp);
@@ -63,6 +63,7 @@
     else {
       delete pathToSeChs[path];
     }
+    va5._logDebug("stopped and disposed se " + ch);
   }
 
   // pathに対応する再生を即座に停止する。予約もキャンセルする
@@ -71,8 +72,7 @@
     var chans = pathToSeChs[path];
     if (!chans) { return; }
     // cloneする必要がある(stopImmediatelyByChによって書き換えられる為)
-    chans = chans.slice();
-    chans.forEach(stopImmediatelyByCh);
+    chans.slice().forEach(stopImmediatelyByCh);
   };
 
   Se.stopImmediatelyAll = function () {
@@ -80,59 +80,40 @@
   };
 
 
-  // TODO: 旧版とは違い、playingStateが再生終了していたらstopImmediatelyByChしていくだけでよい？(ただしロード待ちのものを除去しないよう注意する事)
+  // 多重起動しないようにしてもよい(面倒なので後回し)
   Se.bootstrapPlayingAudioChannelPoolWatcher = function () {
-    // TODO
-//(defn run-playing-audiochannel-pool-watcher! []
-//  (when-not @playing-audiochannel-pool-watcher
-//    (let [c (async/chan)]
-//      (go-loop []
-//        (<! (async/timeout 1111))
-//        (swap! playing-state-pool
-//               (fn [old]
-//                 (reduce (fn [stack [sid state]]
-//                           (or
-//                             ;; fade-targetsにエントリがある内は除去しない
-//                             (when-not (get @fade-targets sid)
-//                               ;; ロード完了前なら除去しない
-//                               (when (cache/loaded? (:path @state))
-//                                 ;; 再生中なら除去しない
-//                                 (when-not (device/call! :playing? ac)
-//                                   ;; disposeして除去する
-//                                   (device/call! :dispose-audio-channel! ac)
-//                                   stack)))
-//                             (assoc stack sid state)))
-//                         {}
-//                         old)))
-//        (recur))
-//      (reset! playing-audiochannel-pool-watcher c))))
+    Object.keys(seChToState).forEach(function (ch) {
+      var state = seChToState[ch];
+      if (!state) { return; }
+      if (!state.playingState) { return; }
+      if (state.playingState.playEndTime) {
+        stopImmediatelyByCh(ch);
+      }
+    });
+    window.setTimeout(Se.bootstrapPlayingAudioChannelPoolWatcher, 2000);
   };
 
 
   var chanCount = 0;
   function makeNewChannelId () {
-    var ch = "sech" + ("00000000" + chanCount).slice(-8);
+    var ch = "sech" + ("00000000" + chanCount).slice(-4);
     ch = va5._assertSeCh(ch);
-    chanCount = (chanCount+1) % 100000000;
+    chanCount = (chanCount+1) % 10000;
     return ch;
   }
 
   function playSeTrue (path, opts) {
     opts = opts || {};
-    var oldCh = opts["channel"];
-    if (oldCh != null) {
-      oldCh = va5._assertSeCh(oldCh);
-      stopImmediatelyByCh(oldCh);
-    }
-
+    var ch = opts["channel"] || makeNewChannelId();
+    ch = va5._assertSeCh(ch);
+    stopImmediatelyByCh(ch);
     var volume = opts["volume"]; if (volume == null) { volume = 1; }
     volume = va5._assertNumber("volume", 0, volume, 10);
     var pitch = va5._assertNumber("pitch", 0.1, opts["pitch"]||1, 10);
     var pan = va5._assertNumber("pan", -1, opts["pan"]||0, 1);
     var isAlarm = !!opts["isAlarm"];
 
-    var volumeTrue = volume * commonVolumeSe;
-    var ch = oldCh || makeNewChannelId();
+    var volumeTrue = volume * baseVolume;
 
     var state = {
       path: path,
@@ -161,16 +142,20 @@
         return;
       }
       state.as = as;
+      // NB: ローディング中にse-chattering-secによってパラメータが
+      //     変化している場合がある。なので元の値を参照せずに、
+      //     stateから参照し直す必要がある
       var opts = {
-        volume: volumeTrue,
-        pitch: pitch,
-        pan: pan,
+        volume: state.volume * baseVolume,
+        pitch: state.pitch,
+        pan: state.pan,
         isLoop: false,
         loopStart: null,
         loopEnd: null,
         startPos: 0,
         endPos: null
       };
+      va5._logDebug("loaded. play se " + path + " : " + ch);
       state.playingState = va5._device.play(as, opts);
     });
 
@@ -178,15 +163,62 @@
     var chans = pathToSeChs[path] || []; pathToSeChs[path] = chans;
     chans.push(ch);
 
+    va5._logDebug("reserved to play se " + path + " : " + ch);
+
     return ch;
+  }
+
+  function mergeState (state, opts) {
+    var volume = opts["volume"]; if (volume == null) { volume = 1; }
+    volume = va5._assertNumber("volume", 0, volume, 10);
+    var pitch = va5._assertNumber("pitch", 0.1, opts["pitch"]||1, 10);
+    var pan = va5._assertNumber("pan", -1, opts["pan"]||0, 1);
+    var prevVolume = state.volume;
+    var prevPitch = state.pitch;
+    var prevPan = state.pan;
+    // 合成後の音量は基本的に大きくなる。しかし普通に加算すると
+    // すぐに音割れ状態になってしまうので増幅量は小さ目にしておく
+    var newVolume = Math.max(prevVolume, volume) + 0.1 * Math.min(prevVolume, volume);
+    newVolume = Math.min(newVolume, 1.1); // キャップ値の設定はかなり悩む
+    var newPitch = (prevPitch + pitch) / 2; // これは調整の余地あり…
+    var newPan = (prevPan + pan) / 2;
+    state.volume = newVolume;
+    state.pitch = newPitch;
+    state.pan = newPan;
   }
 
   Se.playSe = function (path, opts) {
     if (path == null) { return null; }
     path = va5._assertPath(path);
-    // TODO: va5.config["se-chattering-sec"] のチェックおよび対応を行う事
-    // se-chattering-secに引っかかった場合は既存のchを返してよい、という結論になった
-    return playSeTrue(path, opts);
+    var seChatteringSec = va5.config["se-chattering-sec"];
+    if (!seChatteringSec) { return playSeTrue(path, opts); }
+    var chs = pathToSeChs[path];
+    if (!chs) { return playSeTrue(path, opts); }
+    var lastCh = chs.slice(-1)[0];
+    if (!lastCh) { return playSeTrue(path, opts); }
+    var lastState = seChToState[lastCh];
+    if (!lastState) { return playSeTrue(path, opts); }
+    if (lastState.loading) {
+      // loading時のみ特殊mergeが必要
+      mergeState(lastState, opts);
+      va5._logDebug("se-chattering-sec detected. merging parameters for " + path);
+      return lastCh;
+    }
+    if (!lastState.playingState) { return playSeTrue(path, opts); }
+    if (lastState.playingState.playEndTime) { return playSeTrue(path, opts); }
+    if (lastState.fading) { return playSeTrue(path, opts); }
+    var playStartTime = lastState.playingState.playStartTime;
+    var now = va5.getNowMsec() / 1000;
+    var diff = now - playStartTime;
+    if (seChatteringSec < diff) { return playSeTrue(path, opts); }
+    // se-chattering-secを適用する
+    mergeState(lastState, opts);
+    var volumeTrue = lastState.volume * baseVolume;
+    va5._device.setVolume(lastState.playingState, volumeTrue);
+    va5._device.setPitch(lastState.playingState, lastState.pitch);
+    va5._device.setPan(lastState.playingState, lastState.pan);
+    va5._logDebug("se-chattering-sec detected. merging parameters for " + path);
+    return lastCh;
   };
 
 
@@ -202,7 +234,7 @@
     }
     ch = va5._assertSeCh(ch);
 
-    state = seChToState[ch];
+    var state = seChToState[ch];
     if (!state) { return; }
 
     if (!fadeSec) {
@@ -210,10 +242,11 @@
       return;
     }
 
+    va5._logDebug("start to fade se " + ch);
     state.fading = true;
     var fadeStartTime = va5.getNowMsec();
     var tick = function () {
-      if (!state.playingState) { return; }
+      if (!state.playingState) { return; } // 他の要因で既にshutdownされた場合
       var now = va5.getNowMsec();
       var elapsedMsec = now - fadeStartTime;
       var progress = elapsedMsec / (fadeSec * 1000);
@@ -228,6 +261,35 @@
       }
     };
     window.setTimeout(tick, fadeGranularityMsec);
+  };
+
+
+  // デバッグ用情報を取得する機能
+  Se.stats = function () {
+    var result = {
+      entries: 0,
+      loadings: 0,
+      playings: 0,
+      fadings: 0,
+      cancelled: 0,
+      finished: 0,
+      unknowns: 0,
+    };
+    Object.keys(seChToState).forEach(function (ch) {
+      var state = seChToState[ch];
+      result.entries++;
+      if (false) {}
+      else if (state.cancelled) { result.cancelled++; }
+      else if (state.loading) { result.loadings++; }
+      // NB: ここのカウントはあまり正確でない。ここを正確にするには
+      //     _device を呼んでまだ再生中か完了しているか調べる必要がある
+      else if (state.fading) { result.fadings++; }
+      else if (state.playingState) { result.playings++; }
+      // ↑を実装したら、ここも実装する事
+      else if (false) { result.finished++; }
+      else { result.unknowns++; }
+    });
+    return result;
   };
 
 })(this);

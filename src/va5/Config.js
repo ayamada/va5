@@ -5,6 +5,13 @@
 
   function deepCopy (obj) { return JSON.parse(JSON.stringify(obj)); }
 
+  // TODO: 「defmacroでdefentryを定義する」みたいな方向での対応にしたい。
+  //       (現状だとエントリ追加時にあちこちいじる必要がありミスしやすい)
+  //       ただ、Objectのgetter/setterの仕様的に、それが可能なのか微妙。
+  //       (後からgetter/setterを追加できる、古いブラウザでも動く方式はある？)
+  //       できそうなら対応したい
+  //       (おそらくpolyfill入れて対応するしかない気はするが…)
+
   // 考えた結果、va4互換のkebab-caseのkeyにする事にした。何故ならここを下手に
   // property化してしまうとgccのoptimizationsによって短縮されてしまう為。
   // (externs指定すればよいのだが、それもうっかり忘れて気付かないケースが
@@ -44,17 +51,17 @@
     get "volume-bgm" () { return d["volume-bgm"]; },
     set "volume-bgm" (v) {
       d["volume-bgm"] = va5._assertNumber("volume-bgm", 0, v, 1);
-      va5.Bgm.setVolumeBgm(d["volume-bgm"]);
+      va5.Bgm.setBaseVolume(d["volume-bgm"]);
     },
     get "volume-se" () { return d["volume-se"]; },
     set "volume-se" (v) {
       d["volume-se"] = va5._assertNumber("volume-se", 0, v, 1);
-      va5.Se.setVolumeSe(d["volume-se"]);
+      va5.Se.setBaseVolume(d["volume-se"]);
     },
     get "volume-voice" () { return d["volume-voice"]; },
     set "volume-voice" (v) {
       d["volume-voice"] = va5._assertNumber("volume-voice", 0, v, 1);
-      //va5.Voice.setVolumeVoice(d["volume-voice"]); // TODO
+      //va5.Voice.setBaseVolume(d["volume-voice"]); // TODO
     },
     get "default-bgm-fade-sec" () { return d["default-bgm-fade-sec"]; },
     set "default-bgm-fade-sec" (v) {

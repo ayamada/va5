@@ -21,8 +21,8 @@
     }
 
     va5._device.setVolumeMaster(va5.config["volume-master"]);
-    va5.Se.setVolumeSe(va5.config["volume-se"], true);
-    va5.Bgm.setVolumeBgm(va5.config["volume-bgm"], true);
+    va5.Se.setBaseVolume(va5.config["volume-se"], true);
+    va5.Bgm.setBaseVolume(va5.config["volume-bgm"], true);
 
     va5.Background.startSupervise(va5.Bgm.syncBackground);
     va5.Se.bootstrapPlayingAudioChannelPoolWatcher();
