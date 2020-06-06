@@ -56,21 +56,21 @@
 
   console.log("device type:", va5.getDeviceName());
 
-  window.chch = function () {
-    va5.se("./kick.m4a", {});
-    va5.se("./kick.m4a", {pitch:0.5});
-  };
+  //window.chch = function () {
+  //  va5.se("./kick.m4a", {});
+  //  va5.se("./kick.m4a", {pitch:0.5});
+  //};
 
-  var ch = null;
-  window.ppp = function () {
-    ch = va5.se("./cntr.m4a", {channel: ch});
-  };
+  //var ch = null;
+  //window.ppp = function () {
+  //  ch = va5.se("./cntr.m4a", {channel: ch});
+  //};
 
-  window.sss = function () {
-    if (!ch) { return; }
-    //va5.stopSe(ch);
-    va5.stopSe(ch, 1);
-  };
+  //window.sss = function () {
+  //  if (!ch) { return; }
+  //  //va5.stopSe(ch);
+  //  va5.stopSe(ch, 1);
+  //};
 
 
 

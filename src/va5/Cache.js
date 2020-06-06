@@ -15,6 +15,10 @@
   };
 
 
+  // 直にbufを扱う為の情報
+  var bufKeyPrefix = "localbuf://";
+
+
   // ロードが完了したpathとasのテーブル
   var loadedAudioSourceTable = {};
   // ロード待ちキュー。先頭が現在処理中のエントリ。
@@ -113,7 +117,8 @@
   //     完全停止させておく事！
   Cache.unload = function (path) {
     if (path == null) { return; }
-    path = va5._assertPath(path);
+    path = va5._validatePath(path);
+    if (path == null) { return; }
     cancelLoading(path);
     if (Cache.isLoaded(path)) {
       var as = loadedAudioSourceTable[path];
@@ -155,6 +160,22 @@
   }
 
 
+  Cache.loadBuf = function (buf) {
+    if (buf == null) { return; }
+    while (true) {
+      // NB: 現状だとdigestを取れないので乱数で生成するだけとした
+      //var digest = ...
+      //var path = bufKeyPrefix + digest;
+      //if (Cache.isLoaded(path)) { return path; }
+      var digest = Math.random().toString(32).slice(2);
+      var path = bufKeyPrefix + digest;
+      if (Cache.isLoaded(path)) { continue; } // 衝突したら作り直す
+      var as = va5._device.bufToAudioSource(buf);
+      loadedAudioSourceTable[path] = as;
+      return path;
+    }
+  };
+
   // プリロードを行う。プリロード要求は一旦キューに収められ、
   // 直列に逐次ロードされる事が保証される。
   // (並列に同時ロードになってネットワーク帯域を圧迫しないようにしている)
@@ -165,13 +186,24 @@
   // 通常loadはこの後にplayする為に実行するので、
   // どちらの場合であってもplayをスキップすればよい。
   Cache.load = function (path, cont) {
-    if (path == null) { return; }
-    path = va5._assertPath(path);
+    if (path == null) { cont(null); return; }
+    path = va5._validatePath(path);
+    if (path == null) { cont(null); return; }
+    if (path.indexOf(bufKeyPrefix) === 0) {
+      // NB: 例外を投げるかはとても迷う
+      //throw new Error("cannot load buf path: " + path);
+      va5._logError(["cannot load buf path", path]);
+      cont(null);
+      return;
+    }
     var entry = {
       path: path,
       cont: cont,
       isCancelled: false
     };
+    // キャンセル要求が間に入る事があるので、ロード済であっても必ず
+    // 一旦キューに入れてから処理する
+    // (キューが空かつロード済ならpreloadProcess()で即座に実行される)
     preloadRequestQueue.push(entry);
     if (!isRunningPreloadProcess) { preloadProcess(); }
   };

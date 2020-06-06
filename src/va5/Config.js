@@ -43,47 +43,64 @@
     set "is-output-debug-log" (v) { d["is-output-debug-log"] = !!v; },
     get "volume-master" () { return d["volume-master"]; },
     set "volume-master" (v) {
-      d["volume-master"] = va5._assertNumber("volume-master", 0, v, 1);
+      v = va5._validateNumber("volume-master", 0, v, 1, null);
+      if (v == null) { return; }
+      d["volume-master"] = v;
       if (va5._device) {
         va5._device.setVolumeMaster(d["volume-master"]);
       }
     },
     get "volume-bgm" () { return d["volume-bgm"]; },
     set "volume-bgm" (v) {
-      d["volume-bgm"] = va5._assertNumber("volume-bgm", 0, v, 1);
+      v = va5._validateNumber("volume-bgm", 0, v, 1, null);
+      if (v == null) { return; }
+      d["volume-bgm"] = v;
       va5.Bgm.setBaseVolume(d["volume-bgm"]);
     },
     get "volume-se" () { return d["volume-se"]; },
     set "volume-se" (v) {
-      d["volume-se"] = va5._assertNumber("volume-se", 0, v, 1);
+      v = va5._validateNumber("volume-se", 0, v, 1, null);
+      if (v == null) { return; }
+      d["volume-se"] = v;
       va5.Se.setBaseVolume(d["volume-se"]);
     },
     get "volume-voice" () { return d["volume-voice"]; },
     set "volume-voice" (v) {
-      d["volume-voice"] = va5._assertNumber("volume-voice", 0, v, 1);
-      //va5.Voice.setBaseVolume(d["volume-voice"]); // TODO
+      v = va5._validateNumber("volume-voice", 0, v, 1, null);
+      if (v == null) { return; }
+      d["volume-voice"] = v;
+      va5.Bgm.setBaseVolumeVoice(d["volume-voice"]);
     },
     get "default-bgm-fade-sec" () { return d["default-bgm-fade-sec"]; },
     set "default-bgm-fade-sec" (v) {
-      d["default-bgm-fade-sec"] = va5._assertNumber("default-bgm-fade-sec", 0, v, null);
+      v = va5._validateNumber("default-bgm-fade-sec", 0, v, null);
+      if (v == null) { return; }
+      d["default-bgm-fade-sec"] = v;
     },
     get "default-se-fade-sec" () { return d["default-se-fade-sec"]; },
     set "default-se-fade-sec" (v) {
-      d["default-se-fade-sec"] = va5._assertNumber("default-se-fade-sec", 0, v, null);
+      v = va5._validateNumber("default-se-fade-sec", 0, v, null);
+      if (v == null) { return; }
+      d["default-se-fade-sec"] = v;
     },
     get "default-voice-fade-sec" () { return d["default-voice-fade-sec"]; },
     set "default-voice-fade-sec" (v) {
-      d["default-voice-fade-sec"] = va5._assertNumber("default-voice-fade-sec", 0, v, null);
+      v = va5._validateNumber("default-voice-fade-sec", 0, v, null);
+      if (v == null) { return; }
+      d["default-voice-fade-sec"] = v;
     },
     get "is-pause-on-background" () { return d["is-pause-on-background"]; },
     set "is-pause-on-background" (v) { d["is-pause-on-background"] = !!v; },
     get "se-chattering-sec" () { return d["se-chattering-sec"]; },
     set "se-chattering-sec" (v) {
-      d["se-chattering-sec"] = va5._assertNumber("se-chattering-sec", 0, v, null);
+      v = va5._validateNumber("se-chattering-sec", 0, v, null);
+      if (v == null) { return; }
+      d["se-chattering-sec"] = v;
     },
     get "additional-query-string" () { return d["additional-query-string"]; },
     set "additional-query-string" (v) {
       // 悩んだ結果、これはassertもstringifyも行わない事にした
+      // (Date.now()のような数値である事が重要なケースが稀にあると考えて)
       d["additional-query-string"] = v;
     }
   };

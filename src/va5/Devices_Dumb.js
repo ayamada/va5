@@ -29,14 +29,26 @@
     return 0;
   }
 
+
+  device.bufToAudioSource = function (buf) {
+    var as = {};
+    return as;
+  };
+
+
   device.loadAudioSource = function (path, cont) {
     if (path == null) {
       va5._logError(["failed to load", path]);
       cont(null);
       return;
     }
-    path = va5._assertPath(path);
-    cont({});
+    path = va5._validatePath(path);
+    if (path == null) {
+      cont(null);
+    }
+    else {
+      cont({});
+    }
   };
 
   device.play = function (as, opts) {
@@ -44,15 +56,15 @@
     if (as.disposed) { return null; }
 
     var volume = opts["volume"]; if (volume == null) { volume = 1; }
-    volume = va5._assertNumber("volume", 0, volume, 10);
-    var pitch = va5._assertNumber("pitch", 0.1, opts["pitch"]||1, 10);
-    var pan = va5._assertNumber("pan", -1, opts["pan"]||0, 1);
+    volume = va5._validateNumber("volume", 0, volume, 10, 0);
+    var pitch = va5._validateNumber("pitch", 0.1, opts["pitch"]||1, 10, 1);
+    var pan = va5._validateNumber("pan", -1, opts["pan"]||0, 1, 0);
     var isLoop = !!opts["isLoop"];
-    var loopStart = va5._assertNumber("loopStart", 0, opts["loopStart"]||0, null);
-    var loopEnd = va5._assertNumber("loopEnd", null, opts["loopEnd"]||0, null);
-    var startPos = va5._assertNumber("startPos", 0, opts["startPos"]||0, null);
+    var loopStart = va5._validateNumber("loopStart", 0, opts["loopStart"]||0, null, 0);
+    var loopEnd = va5._validateNumber("loopEnd", null, opts["loopEnd"]||0, null, 0);
+    var startPos = va5._validateNumber("startPos", 0, opts["startPos"]||0, null, 0);
     var endPos = opts["endPos"] || null;
-    if (endPos != null) { endPos = va5._assertNumber("endPos", null, endPos, null); }
+    if (endPos != null) { endPos = va5._validateNumber("endPos", null, endPos, null, 0); }
 
     var now = va5.getNowMsec() / 1000;
 
@@ -67,8 +79,9 @@
       startPos: startPos,
       endPos: endPos,
 
-      playStartTime: now,
-      playEndTime: now
+      playStartSec: now,
+      playEndSec: now
+      // TODO: WebAudioの方の追加パラメータに対応する事
     };
 
     return state;
@@ -92,6 +105,12 @@
     return;
   };
 
-  // TODO
+  // BGMのバックグラウンド一時停止用。それ以外の用途には使わない事(衝突する為)
+  device.sleep = function (state) {
+  }
+  device.resume = function (state) {
+  }
+
+  // TODO: WebAudioの方の追加ディスパッチに対応する事
 
 })(this);

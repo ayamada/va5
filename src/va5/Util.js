@@ -9,7 +9,8 @@
 
 
   function getNowByAudioContext () {
-    return va5._device.getCurrentTime() * 1000;
+    // AudioContext回りの秒数の単位はsecなので、msecに変換する
+    return va5._device.getCurrentSec() * 1000;
   }
   function getNowByPerformanceNow () {
     return window.performance.now();
@@ -34,7 +35,7 @@
   // msecのタイムスタンプを返す。実際の日時ではないので注意
   Util.getNowMsec = function () {
     if (getNowEntity) { return getNowEntity(); }
-    if (va5._device && va5._device.getCurrentTime && va5._device.getCurrentTime()) {
+    if (va5._device && va5._device.getCurrentSec && va5._device.getCurrentSec()) {
       getNowEntity = getNowByAudioContext;
       va5._logDebug("getNowMsec function determined to getNowByAudioContext");
     }

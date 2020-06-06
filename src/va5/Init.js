@@ -26,5 +26,6 @@
 
     va5.Background.startSupervise(va5.Bgm.syncBackground);
     va5.Se.bootstrapPlayingAudioChannelPoolWatcher();
+    va5.Bgm.bootstrapPlayingAudioChannelPoolWatcher();
   }
 })(this);

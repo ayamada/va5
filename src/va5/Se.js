@@ -4,11 +4,11 @@
   var Se = va5.Se || {}; va5.Se = Se;
 
 
-  // sech -> state(seの。deviceのplayingStateではない事に要注意)
-  var seChToState = {};
+  // ch -> state(seの。deviceのplayingStateではない事に要注意)
+  var chToState = {};
 
-  // path -> [sech, ...]
-  var pathToSeChs = {};
+  // path -> [ch1, ch2, ...]
+  var pathToChs = {};
 
 
   var fadeGranularityMsec = 100;
@@ -17,12 +17,12 @@
   // 全SE共通の音量倍率
   var baseVolume = 1;
 
-  Se.setBaseVolume = function (newVolumeSe, isInit) {
+  Se.setBaseVolume = function (newVolume, isInit) {
     var oldBaseVolume = baseVolume;
-    baseVolume = newVolumeSe;
+    baseVolume = newVolume;
     if (isInit) { return; }
-    Object.values(pathToSeChs).forEach(function (ch) {
-      var state = seChToState[ch];
+    Object.values(pathToChs).forEach(function (ch) {
+      var state = chToState[ch];
       if (!state) { return; }
       if (!state.playingState) { return; }
       // フェード中は音量再計算がややこしいのでパスする
@@ -35,7 +35,7 @@
 
   function stopImmediatelyByCh (ch) {
     if (!ch) { return; }
-    var state = seChToState[ch];
+    var state = chToState[ch];
     if (!state) { return; }
 
     if (state.loading) {
@@ -51,52 +51,56 @@
     state.as = null;
 
     // 各テーブルから除去する
-    delete seChToState[ch];
+    delete chToState[ch];
     var path = state.path;
-    var chans = pathToSeChs[path] || [];
+    var chans = pathToChs[path] || [];
     chans = chans.filter(function (ctmp) {
       return (ch !== ctmp);
     });
     if (chans.length) {
-      pathToSeChs[path] = chans;
+      pathToChs[path] = chans;
     }
     else {
-      delete pathToSeChs[path];
+      delete pathToChs[path];
     }
     va5._logDebug("stopped and disposed se " + ch);
   }
 
   // pathに対応する再生を即座に停止する。予約もキャンセルする
   Se.stopImmediatelyByPath = function (path) {
-    if (path == null) { return; } path = va5._assertPath(path);
-    var chans = pathToSeChs[path];
+    if (path == null) { return; }
+    path = va5._validatePath(path);
+    if (path == null) { return; }
+    var chans = pathToChs[path];
     if (!chans) { return; }
     // cloneする必要がある(stopImmediatelyByChによって書き換えられる為)
     chans.slice().forEach(stopImmediatelyByCh);
   };
 
   Se.stopImmediatelyAll = function () {
-    Object.keys(seChToState).forEach(stopImmediatelyByCh);
+    Object.keys(chToState).forEach(stopImmediatelyByCh);
   };
 
 
   // 多重起動しないようにしてもよい(面倒なので後回し)
   Se.bootstrapPlayingAudioChannelPoolWatcher = function () {
-    Object.keys(seChToState).forEach(function (ch) {
-      var state = seChToState[ch];
-      if (!state) { return; }
-      if (!state.playingState) { return; }
-      if (state.playingState.playEndTime) {
-        stopImmediatelyByCh(ch);
-      }
-    });
-    window.setTimeout(Se.bootstrapPlayingAudioChannelPoolWatcher, 2000);
+    var ch;
+    for (ch in chToState) {
+      var state = chToState[ch];
+      if (!state) { continue; }
+      if (!state.playingState) { continue; }
+      if (state.playingState.playEndSec) { stopImmediatelyByCh(ch); }
+    }
+    // NB: stopImmediatelyByChによって、chToStateが全チェックされない
+    //     ケースがありえる。しかしその場合でも次の周回でチェックされるので
+    //     問題ないという事にしている
+    window.setTimeout(Se.bootstrapPlayingAudioChannelPoolWatcher, 3333);
   };
 
 
   var chanCount = 0;
   function makeNewChannelId () {
-    var ch = "sech" + ("00000000" + chanCount).slice(-4);
+    var ch = "sech" + ("0000" + chanCount).slice(-4);
     ch = va5._assertSeCh(ch);
     chanCount = (chanCount+1) % 10000;
     return ch;
@@ -105,12 +109,13 @@
   function playSeTrue (path, opts) {
     opts = opts || {};
     var ch = opts["channel"] || makeNewChannelId();
-    ch = va5._assertSeCh(ch);
+    ch = va5._validateSeCh(ch);
+    if (ch == null) { return null; }
     stopImmediatelyByCh(ch);
     var volume = opts["volume"]; if (volume == null) { volume = 1; }
-    volume = va5._assertNumber("volume", 0, volume, 10);
-    var pitch = va5._assertNumber("pitch", 0.1, opts["pitch"]||1, 10);
-    var pan = va5._assertNumber("pan", -1, opts["pan"]||0, 1);
+    volume = va5._validateNumber("volume", 0, volume, 10, 0);
+    var pitch = va5._validateNumber("pitch", 0.1, opts["pitch"]||1, 10, 1);
+    var pan = va5._validateNumber("pan", -1, opts["pan"]||0, 1, 0);
     var isAlarm = !!opts["isAlarm"];
 
     var volumeTrue = volume * baseVolume;
@@ -131,6 +136,7 @@
       cancelled: false
     };
 
+    // TODO: このfnがメモリリークの原因になる事はありえるか？ちょっと検証する必要がある…
     va5.Cache.load(path, function (as) {
       state.loading = false;
       if (!as) {
@@ -145,7 +151,7 @@
       // NB: ローディング中にse-chattering-secによってパラメータが
       //     変化している場合がある。なので元の値を参照せずに、
       //     stateから参照し直す必要がある
-      var opts = {
+      var deviceOpts = {
         volume: state.volume * baseVolume,
         pitch: state.pitch,
         pan: state.pan,
@@ -156,11 +162,11 @@
         endPos: null
       };
       va5._logDebug("loaded. play se " + path + " : " + ch);
-      state.playingState = va5._device.play(as, opts);
+      state.playingState = va5._device.play(as, deviceOpts);
     });
 
-    seChToState[ch] = state;
-    var chans = pathToSeChs[path] || []; pathToSeChs[path] = chans;
+    chToState[ch] = state;
+    var chans = pathToChs[path] || []; pathToChs[path] = chans;
     chans.push(ch);
 
     va5._logDebug("reserved to play se " + path + " : " + ch);
@@ -170,9 +176,9 @@
 
   function mergeState (state, opts) {
     var volume = opts["volume"]; if (volume == null) { volume = 1; }
-    volume = va5._assertNumber("volume", 0, volume, 10);
-    var pitch = va5._assertNumber("pitch", 0.1, opts["pitch"]||1, 10);
-    var pan = va5._assertNumber("pan", -1, opts["pan"]||0, 1);
+    volume = va5._validateNumber("volume", 0, volume, 10, 0);
+    var pitch = va5._validateNumber("pitch", 0.1, opts["pitch"]||1, 10, 1);
+    var pan = va5._validateNumber("pan", -1, opts["pan"]||0, 1, 0);
     var prevVolume = state.volume;
     var prevPitch = state.pitch;
     var prevPan = state.pan;
@@ -189,14 +195,15 @@
 
   Se.playSe = function (path, opts) {
     if (path == null) { return null; }
-    path = va5._assertPath(path);
+    path = va5._validatePath(path);
+    if (path == null) { return null; }
     var seChatteringSec = va5.config["se-chattering-sec"];
     if (!seChatteringSec) { return playSeTrue(path, opts); }
-    var chs = pathToSeChs[path];
+    var chs = pathToChs[path];
     if (!chs) { return playSeTrue(path, opts); }
     var lastCh = chs.slice(-1)[0];
     if (!lastCh) { return playSeTrue(path, opts); }
-    var lastState = seChToState[lastCh];
+    var lastState = chToState[lastCh];
     if (!lastState) { return playSeTrue(path, opts); }
     if (lastState.loading) {
       // loading時のみ特殊mergeが必要
@@ -205,11 +212,11 @@
       return lastCh;
     }
     if (!lastState.playingState) { return playSeTrue(path, opts); }
-    if (lastState.playingState.playEndTime) { return playSeTrue(path, opts); }
+    if (lastState.playingState.playEndSec) { return playSeTrue(path, opts); }
     if (lastState.fading) { return playSeTrue(path, opts); }
-    var playStartTime = lastState.playingState.playStartTime;
+    var playStartSec = lastState.playingState.playStartSec;
     var now = va5.getNowMsec() / 1000;
-    var diff = now - playStartTime;
+    var diff = now - playStartSec;
     if (seChatteringSec < diff) { return playSeTrue(path, opts); }
     // se-chattering-secを適用する
     mergeState(lastState, opts);
@@ -224,17 +231,18 @@
 
   Se.stopSe = function (ch, fadeSec) {
     if (fadeSec == null) { fadeSec = va5.Config["default-se-fade-sec"]; }
-    fadeSec = va5._assertNumber("fadeSec", 0, fadeSec, null);
+    fadeSec = va5._validateNumber("fadeSec", 0, fadeSec, null, 0);
     if (ch == null) {
       // chが偽値なら、全再生中chに対して再帰実行する
-      Object.keys(seChToState).forEach(function (ch2) {
+      Object.keys(chToState).forEach(function (ch2) {
         Se.stopSe(ch2, fadeSec);
       });
       return;
     }
-    ch = va5._assertSeCh(ch);
+    ch = va5._validateSeCh(ch);
+    if (ch == null) { return; }
 
-    var state = seChToState[ch];
+    var state = chToState[ch];
     if (!state) { return; }
 
     if (!fadeSec) {
@@ -244,11 +252,11 @@
 
     va5._logDebug("start to fade se " + ch);
     state.fading = true;
-    var fadeStartTime = va5.getNowMsec();
+    var fadeStartMsec = va5.getNowMsec();
     var tick = function () {
       if (!state.playingState) { return; } // 他の要因で既にshutdownされた場合
       var now = va5.getNowMsec();
-      var elapsedMsec = now - fadeStartTime;
+      var elapsedMsec = now - fadeStartMsec;
       var progress = elapsedMsec / (fadeSec * 1000);
       progress = Math.max(0, Math.min(progress, 1));
       var newVolume = state.volumeTrue * (1 - progress);
@@ -275,8 +283,8 @@
       finished: 0,
       unknowns: 0,
     };
-    Object.keys(seChToState).forEach(function (ch) {
-      var state = seChToState[ch];
+    Object.keys(chToState).forEach(function (ch) {
+      var state = chToState[ch];
       result.entries++;
       if (false) {}
       else if (state.cancelled) { result.cancelled++; }
