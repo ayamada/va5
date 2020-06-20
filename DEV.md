@@ -67,6 +67,10 @@ TODO
 
 ## 一時メモ
 
+現状だと「loopStartが未指定の場合はstartPosを流用する」ようになっているが、おそらくこれは逆の方がよい。「startPosが未指定の場合はloopStartを流用する(あれば)」方がよい。なんでかというと、MV互換タグを読み込む際にそうなる方が自然な為
+(MVではstartPos endPosがない。またloopStartはあるがloopEndがなくloopLengthでの指定となっている)
+
+
 
 - 「bgm/voiceの再生が終了したら自動的にunloadまで行うconfig項目」の追加と実装を行う事
     - ゲーム内のbgmやvoiceの量が多く全てをオンメモリで持つ訳にはいかない場合、この処理が必須になる
