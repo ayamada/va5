@@ -70,8 +70,10 @@
   // NB: これはcurrentTimeを提供していないデバイスでは実装してはいけない。
   //     (どうしても実装する場合はnullを返すようにする事)
   // NB: ac.currentTimeはあるものの0から動かない環境があるらしい。
-  //     なので0だった場合は特別にnullを返すようにする
-  device.getCurrentSec = function () { return ac.currentTime || null; };
+  //     ただ、そういう環境と、AudioContextの初期状態がsuspendedなので
+  //     0から動かない環境との区別が全く付かない。
+  //     前者の環境はもうないとするしかない
+  device.getCurrentSec = function () { return ac.currentTime; };
 
 
   function disconnectSafely (node) {
@@ -224,6 +226,27 @@
     state.gainNode = gainNode;
     state.pannerNodeType = pannerNodeType;
     state.pannerNode = pannerNode;
+
+    if (state.isLoop) {
+      state.sourceNode.loop = true;
+      state.sourceNode.loopStart = state.loopStart;
+      state.sourceNode.loopEnd = state.loopEnd;
+    }
+    else {
+      // NB: 古い端末で、自動再生終了すると音が鳴らなくなる問題があり、
+      //     またendedイベントが発生しないものもあるらしく、
+      //     それへのdirty fixとして、わざとloop有効にしてloopを検出したら
+      //     手で音源を停止する、という技があった。
+      //     でももうやらなくてもいいだろう…
+      state.sourceNode.onended = function () { shutdownPlayingState(state); };
+    }
+
+    if (state.endPos) {
+      state.sourceNode.start(0, state.startPos, state.endPos - state.startPos);
+    }
+    else {
+      state.sourceNode.start(0, state.startPos);
+    }
   }
 
 
@@ -244,7 +267,7 @@
     var loopEnd = va5._validateNumber("loopEnd", null, opts["loopEnd"]||buf.duration, null, buf.duration);
     var startPos = va5._validateNumber("startPos", 0, opts["startPos"]||0, null, 0);
     var endPos = opts["endPos"] || null;
-    if (endPos != null) { endPos = va5._validateNumber("endPos", null, endPos, null, buf.duration); }
+    if (endPos != null) { endPos = va5._validateNumber("endPos", startPos, endPos, null, buf.duration); }
     var isSleepingStart = !!opts["isSleepingStart"];
 
     var isNeedFinishImmediately = (endPos < startPos);
@@ -277,48 +300,25 @@
       pannerNode: null,
 
       // この二つは「現在の再生位置」を算出する為の内部用の値。
-      // sleep/resumeおよびsetPitchによって変化するので要注意。
+      // sleep/resumeおよびsetPitchによって変化するので、
+      // それ以外の用途には使わない事！
       playStartSec: now,
       playStartPos: startPos,
 
       // これは「再生終了済」のフラグ用途。値はほぼ利用されない
       playEndSec: null,
 
-      // TODO: きちんと対応する事
       playPausePos: isSleepingStart ? startPos : null
-      // TODO: dumbにも対応するプロパティを用意する事
     };
     appendNodes(state, isSleepingStart);
 
-    // TODO
-
-    if (isLoop) {
-      state.sourceNode.loop = true;
-      state.sourceNode.loopStart = loopStart;
-      state.sourceNode.loopEnd = loopEnd;
-    }
-    else {
-      state.sourceNode.onended = function () { shutdownPlayingState(state); };
-    }
-
-    var offset = startPos;
-    if (isLoop) {
-      offset = startPos || loopStart || 0;
-    }
-    if (endPos) {
-      var duration = endPos - offset;
-      state.sourceNode.start(0, offset, duration);
-    }
-    else {
-      state.sourceNode.start(0, offset);
-    }
     if (isSleepingStart) {
       state.gainNode.gain.value = 0;
       state.sourceNode.stop();
     }
 
-
     if (isNeedFinishImmediately) { shutdownPlayingState (state); }
+
     return state;
   };
 
@@ -349,6 +349,8 @@
         var now = va5.getNowMsec() / 1000;
         var elapsed = now - oldStartSec;
         var pos = oldStartPos + (elapsed * oldPitch);
+        // NB: もしここで例外が発生したら、playStartSecとplayStartPosは
+        //     そのままになるべきなので、この処理順となっている
         state.sourceNode.playbackRate.value = newPitch;
         state.playStartSec = now;
         state.playStartPos = pos;
@@ -383,31 +385,57 @@
   };
 
 
-  // dispose後等、取得できない状態の場合はnullを返す、要注意
+  // この音源の現在の再生位置を返す。ほぼ音ゲー用。
+  // 再生終了後はnullを返す、要注意。
+  // pitch設定によらず、返される値は 0 ～ buf.duration の間の値となる。
+  // ループ分も考慮されない。しかしループ時には巻き戻りが発生するので、
+  // 巻き戻りが起こったかを呼び出し元でチェックすれば
+  // ループをカウントする事は一応可能。
   device.calcPos = function (state) {
-    // TODO
+    if (!state) { return null; }
+    if (state.playEndSec != null) { return null; }
+    if (state.playPausePos) { return state.playPausePos; }
+    var now = va5.getNowMsec() / 1000;
+    var elapsed = now - state.playStartSec;
+    return state.playStartPos + (elapsed / state.pitch);
   };
+
 
   // BGMのバックグラウンド一時停止用。それ以外の用途には使わない事(衝突する為)
   // 実装としては、 playPausePos に現在のposを記録しておき、完全停止する。
   // 再開時には古いnodeをGCし、全く新しいnodeを生成して差し替える。
   // なんでこんな仕様なのかというと、AudioContext.suspend()は呼べないし、
-  // nodeだけ一時停止する事はできないようなので。
-  // (sourceNodeを止めてもバッファが生きているのですぐには止まらない為)
+  // sourceNodeだけ一時停止する事はできない為。
+  // (sourceNodeは一旦停止させたら再度playする事はできない)
   device.sleep = function (state) {
     if (!state) { return; }
     if (!state.sourceNode) { return; }
-    // NB: 既に再生停止している場合は何もしない
     if (state.playEndSec != null) { return; }
-    //state.playPausePos = state.sourceNode.
-    // TODO
-  }
+    if (state.playPausePos != null) { return; } // 既にpause状態だった
+    state.playPausePos = device.calcPos(state);
+    // sourceNodeを停止させる(ただし除去はしない)
+    stopSafely(state);
+    disconnectSafely(state.sourceNode);
+    disconnectSafely(state.gainNode);
+    disconnectSafely(state.pannerNode);
+  };
   device.resume = function (state) {
-    // TODO
-  }
+    if (!state) { return; }
+    if (!state.sourceNode) { return; }
+    if (state.playEndSec != null) { return; }
+    if (state.playPausePos == null) { return; } // pause状態ではなかった
+    state.playStartPos = state.playPausePos;
+    state.playPausePos = null;
+    state.playStartSec = va5.getNowMsec() / 1000;
+    // nodesを再生成する(古いものは除去してよい)
+    appendNodes(state, false);
+  };
 
-  // TODO: dumbに対応する関数を実装する事
 
-  // TODO: もっと機能を追加する必要あり
+  // 効果音をon the flyに生成するのに必要となった
+  device.getAudioContext = function () {
+    return ac;
+  };
+
 
 })(this);

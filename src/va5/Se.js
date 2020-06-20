@@ -118,6 +118,10 @@
     var pan = va5._validateNumber("pan", -1, opts["pan"]||0, 1, 0);
     var isAlarm = !!opts["isAlarm"];
 
+    var startPos = va5._validateNumber("startPos", 0, opts["startPos"]||0, null, 0);
+    var endPos = opts["endPos"] || null;
+    if (endPos != null) { endPos = va5._validateNumber("endPos", 0, endPos, null, null); }
+
     var volumeTrue = volume * baseVolume;
 
     var state = {
@@ -126,6 +130,9 @@
       pitch: pitch,
       pan: pan,
       isAlarm: isAlarm,
+
+      startPos: startPos,
+      endPos: endPos,
 
       volumeTrue: volumeTrue,
 
@@ -148,6 +155,12 @@
         return;
       }
       state.as = as;
+      // ロード完了時にバックグラウンド状態なら、即座に終了させる
+      if (va5.Bgm.isInBackground() && va5.config["is-pause-on-background"]) {
+        state.cancelled = true;
+        stopImmediatelyByCh(ch);
+        return;
+      }
       // NB: ローディング中にse-chattering-secによってパラメータが
       //     変化している場合がある。なので元の値を参照せずに、
       //     stateから参照し直す必要がある
@@ -158,8 +171,8 @@
         isLoop: false,
         loopStart: null,
         loopEnd: null,
-        startPos: 0,
-        endPos: null
+        startPos: state.startPos,
+        endPos: state.endPos
       };
       va5._logDebug("loaded. play se " + path + " : " + ch);
       state.playingState = va5._device.play(as, deviceOpts);

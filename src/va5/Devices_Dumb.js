@@ -65,9 +65,12 @@
     var startPos = va5._validateNumber("startPos", 0, opts["startPos"]||0, null, 0);
     var endPos = opts["endPos"] || null;
     if (endPos != null) { endPos = va5._validateNumber("endPos", null, endPos, null, 0); }
+    var isSleepingStart = !!opts["isSleepingStart"];
 
     var now = va5.getNowMsec() / 1000;
 
+    // 何も再生できないので、いきなり再生終了状態にしておく
+    // (たとえisLoopが真だったとしても)
     var state = {
       as: as,
       volume: volume,
@@ -80,8 +83,11 @@
       endPos: endPos,
 
       playStartSec: now,
-      playEndSec: now
-      // TODO: WebAudioの方の追加パラメータに対応する事
+      playStartPos: startPos,
+
+      playEndSec: now,
+
+      playPausePos: null
     };
 
     return state;
@@ -105,12 +111,19 @@
     return;
   };
 
+  device.calcPos = function (state) {
+    return null;
+  };
+
   // BGMのバックグラウンド一時停止用。それ以外の用途には使わない事(衝突する為)
   device.sleep = function (state) {
-  }
+  };
   device.resume = function (state) {
-  }
+  };
 
-  // TODO: WebAudioの方の追加ディスパッチに対応する事
+  device.getAudioContext = function () {
+    return null;
+  };
+
 
 })(this);

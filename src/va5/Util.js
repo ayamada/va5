@@ -35,7 +35,7 @@
   // msecのタイムスタンプを返す。実際の日時ではないので注意
   Util.getNowMsec = function () {
     if (getNowEntity) { return getNowEntity(); }
-    if (va5._device && va5._device.getCurrentSec && va5._device.getCurrentSec()) {
+    if (va5._device && va5._device.getCurrentSec && (va5._device.getCurrentSec() != null)) {
       getNowEntity = getNowByAudioContext;
       va5._logDebug("getNowMsec function determined to getNowByAudioContext");
     }

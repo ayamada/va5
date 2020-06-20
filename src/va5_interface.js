@@ -96,7 +96,7 @@
     }
   };
 
-  va5.playSe = va5.se;
+  va5.playSe = va5.se; // alias
 
   va5.stopSe = function (ch, fadeSec) {
     va5._logDebug(["called va5.stopSe", ch, fadeSec]);
@@ -121,7 +121,36 @@
   };
 
 
+  // seをon the flyに生成する時等にこれが必要となった
+  va5.getAudioContext = function () {
+    va5.init();
+    return va5._device.getAudioContext();
+  };
+
+
+  va5.getBgmPos = va5.Bgm.getBgmPos;
+  va5.isInBackground = va5.Bgm.isInBackground;
+
+  va5.bgm = function (path, opts) {
+    va5._logDebug(["called va5.bgm", path, opts]);
+    va5.init();
+    return va5.Bgm.playBgm(path, opts);
+  };
+  va5.playBgm = va5.bgm; // alias
+
+  va5.voice = function (path, opts) {
+    va5._logDebug(["called va5.voice", path, opts]);
+    va5.init();
+    return va5.Bgm.playVoice(path, opts);
+  };
+  va5.playVoice = va5.voice; // alias
+
+  va5.stopBgm = va5.Bgm.stopBgm;
+  va5.stopVoice = va5.Bgm.stopVoice;
+
+
+  // TODO
+
+
   va5.version = va5.version || "0.0.0-UNDEFINED";
-
-
 })(this);

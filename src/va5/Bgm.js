@@ -47,6 +47,17 @@
   // 全voice共通の音量倍率
   var baseVolumeVoice = 1;
 
+
+
+  function updateVolume (state, isVoice) {
+    if (!state) { return; }
+    state.volumeTrue = state.volume * (isVoice ? baseVolumeVoice : baseVolume);
+    var fv = state.volumeTrue * state.fadeVolume;
+    if (state.playingState) {
+      va5._device.setVolume(state.playingState, fv);
+    }
+  }
+
   Bgm.setBaseVolume = function (newVolume, isInit) {
     var oldBaseVolume = baseVolume;
     baseVolume = newVolume;
@@ -57,8 +68,8 @@
       if (pch.indexOf("bgm_") !== 0) { return; }
       var state = stats[0];
       var nextState = stats[1];
-      // TODO: 上記二つにボリュームを再設定する事。
-      // SEとは違い、フェードをきちんと管理する必要あり！難しい…
+      updateVolume(state, false);
+      updateVolume(nextState, false);
     });
   };
 
@@ -72,8 +83,8 @@
       if (pch.indexOf("voice_") !== 0) { return; }
       var state = stats[0];
       var nextState = stats[1];
-      // TODO: 上記二つにボリュームを再設定する事。
-      // SEとは違い、フェードをきちんと管理する必要あり！難しい…
+      updateVolume(state, true);
+      updateVolume(nextState, true);
     });
   };
 
@@ -83,7 +94,7 @@
     if (!state) { return; }
     if (state.disposed) { return; }
     state.disposed = true;
-    state.cancelled = true;
+    state.isCancelled = true;
     state.sleepPos = null;
     if (!state.playingState) { return; }
     va5._device.disposePlayingState(state.playingState);
@@ -91,60 +102,45 @@
   }
 
 
-
-
-  // TODO: 以下はまだ未整理(不完全、重複あり)
-
-
-  // pathに対応する再生を即座に停止する。予約も解除する
-  // TODO: race condition注意だが、「対象が現在再生中のBGM」かつ
-  //       「フェードアウト中」かつ「次のBGMが予約済」
-  //       の、全てを満たすのであれば、
-  //       BGMの停止後に「次のBGM」を再生する必要がある。
-  //       (unloadAllからの呼び出しでは、この処理をしてはいけない、
-  //       全てをunloadするのだから…)
-  // NB: これは今のところbgmとvoice両方に作用する
-  Bgm.stopImmediatelyByPath = function (path) {
-    if (path == null) { return; }
-    path = va5._validatePath(path);
-    if (path == null) { return; }
-    // TODO
-    //disposeState(state);
-  };
-
-
-  // NB: これはbgmとvoice両方に作用する
-  Bgm.stopImmediatelyAll = function () {
-    // TODO
-  };
-
+  // NB: これは「無音から新たに再生する」向けのstateになっている。
+  //     そうでない場合は生成後に更に調整が必要となる。
+  //     また isLoading がtrueで開始される事にも注意。
+  //     (通常はこの後すぐに va5.Cache.load() が実行されるので
+  //     これで問題ないのだが、そうではない場合は注意する事。
+  //     なおnextStateに入る場合もisLoading=trueで問題ない想定。
+  //     ただしプリロードを事前に走らせておく事が望ましい。)
   function makeInitialState (isVoice, path, opts) {
     opts = opts || {};
 
-    var volume = opts["volume"]; if (volume == null) { volume = 1; }
+    var volume = opts["volume"];
+    if (volume == null) { volume = 1; }
     volume = va5._validateNumber("volume", 0, volume, 10, 0);
     var pitch = va5._validateNumber("pitch", 0.1, opts["pitch"]||1, 10, 1);
     var pan = va5._validateNumber("pan", -1, opts["pan"]||0, 1, 0);
 
     var isOneshot = !!opts["isOneshot"];
+    if (isVoice) { isOneshot = true; } // voiceは常にoneshot。これが問題になるならvoiceではなくbgm扱いで再生すべき
     var loopStart = va5._validateNumber("loopStart", 0, opts["loopStart"]||0, null, 0);
     var loopEnd = opts["loopEnd"] || null;
     if (loopEnd != null) { loopEnd = va5._validateNumber("loopEnd", 0, loopEnd, null, null); }
 
     var startPos = va5._validateNumber("startPos", 0, opts["startPos"]||loopStart, null, loopStart);
+    var endPos = opts["endPos"] || null;
+    if (endPos != null) { endPos = va5._validateNumber("endPos", 0, endPos, null, null); }
 
     // fadeを適用する前の再生音量
     var volumeTrue = volume * (isVoice ? baseVolumeVoice : baseVolume);
 
-    var fadein = va5._validateNumber("fadein", 0, opts["fadein"]||0, null, 0);
-    var transitionMode = va5._validateEnum("transitionMode", opts["transitionMode"]||"connectIfSame", ["connectNever", "connectIfSame", "connectPossibly"], "connectIfSame");
-    var fadeVolume = 1; // TODO: fadeinが0でない場合は適切に処理する事
-    var fadeDelta = 0; // TODO: fadeinが0でない場合は適切に処理する事
-    var fadeEnd = 1; // TODO: fadeinが0でない場合は適切に処理する事
+    var transitionMode = va5._validateEnum("transitionMode", opts["transitionMode"]||"connectIfSame", ["connectNever", "connectIfSame", "connectIfPossible"], "connectIfSame");
+    var fadeinSec = va5._validateNumber("fadeinSec", 0, opts["fadeinSec"]||0, null, 0);
+    var fadeVolume = fadeinSec ? 0 : 1;
+    var fadeEndVolume = 1; // フェードインの有無によらず、ここは1でよい
+    var fadeDeltaPerSec = 0;
+    if (fadeinSec) { fadeDeltaPerSec = (fadeEndVolume - fadeVolume) / fadeinSec; }
 
     var sleepPos = null;
     if (va5.config["is-pause-on-background"] && isBackgroundNow) {
-      sleepPos = 0;
+      sleepPos = startPos;
     }
 
     var state = {
@@ -159,54 +155,58 @@
       loopEnd: loopEnd,
 
       startPos: startPos,
+      endPos: endPos,
 
       volumeTrue: volumeTrue,
 
-      fadein: fadein,
       transitionMode: transitionMode,
-
+      fadeinSec: fadeinSec,
       fadeVolume: fadeVolume,
-      fadeDelta: fadeDelta,
-      fadeEnd: fadeEnd,
+      fadeEndVolume: fadeEndVolume,
+      fadeDeltaPerSec: fadeDeltaPerSec,
 
       as: null,
-      playingState: null, // バックグラウンドsleep時にもnullになる事に注意
-      loading: true,
+      playingState: null,
+      isLoading: true,
       sleepPos: sleepPos,
-      cancelled: false
+      isCancelled: false
     };
 
     return state;
   }
 
-  // TODO: 現状では「無音からの再生」前提のコードになっている。「既に鳴っているチャンネルに対してフェード対応する」部分の処理が抜けている。そこをどうするか考える必要がある…
-  // bgmとvoiceで共通
-  function playTrue (isVoice, path, opts) {
-    opts = opts || {};
-    var ch = opts["channel"];
-    if (isVoice) {
-      // voiceの場合はch指定は必須
-      if (ch == null) { return; }
-      ch = va5._validateVoiceCh(ch);
-    }
-    else {
-      if (ch == null) { ch = defaultBgmCh; }
-      ch = va5._validateBgmCh(ch);
-    }
-    if (ch == null) { return; }
-    var pchPrefix = isVoice ? "voice_" : "bgm_";
-    var pch = pchPrefix + ch;
 
-    var state = makeInitialState(isVoice, path, opts);
+  // NB: これはbgmとvoice両方に作用する
+  Bgm.stopImmediatelyAll = function () {
+    Object.keys(pchToStatus).forEach(function (pch) {
+      var stats = pchToStatus[pch];
+      if (!stats) { return; }
+      var state = stats[0];
+      var nextState = stats[1];
+      disposeState(state);
+      disposeState(nextState);
+      delete pchToStatus[pch];
+    });
+  };
 
-    va5.Cache.load(path, function (as) {
-      state.loading = false;
-      if (!as) {
-        // TODO: pchToStatusからこのstateを除去し、後続処理を行う
-        return;
-      }
-      if (state.cancelled) {
-        // TODO: pchToStatusからこのstateを除去し、後続処理を行う
+
+  // これは「新規にBGMを再生する」時だけではなく、
+  // 「再生中の曲が即座もしくはフェードアウト終了が完了した時かつ
+  // 次の曲が予約されている」時にも実行される。
+  // NB: ここでのstateは基本的に pchToStatus[pch][0] に入っている前提。
+  //     ただし例外としてcancelされた場合等がありえる。
+  //     (だからpchToStatus[pch][0]とstateが同一かどうかのチェックが必要)
+  // TODO: 関数名がちょっと分かりづらい。もっと良い名前はあるか？
+  function playByState (pch, state) {
+    va5.Cache.load(state.path, function (as) {
+      state.isLoading = false;
+      var stats = pchToStatus[pch];
+      if (!as || state.isCancelled) {
+        disposeState(state);
+        if (!stats || (state !== stats[0])) { return; }
+        stats[0] = stats[1];
+        stats[1] = null;
+        if (stats[0]) { playByState(pch, stats[0]); }
         return;
       }
       state.as = as;
@@ -221,81 +221,205 @@
         loopStart: state.loopStart,
         loopEnd: state.loopEnd,
         startPos: state.startPos,
-        endPos: null,
+        endPos: state.endPos,
         isSleepingStart: (state.sleepPos != null)
       };
-      va5._logDebug("loaded. play bgm or voice " + path + " : " + ch);
+      va5._logDebug("loaded. play bgm or voice " + state.path + " : " + pch);
       state.playingState = va5._device.play(as, deviceOpts);
     });
-
-
-    // TODO: pchToStatusテーブルに登録するのだが、既存の状態に応じて登録先が変動する。ちょっと考える必要がある…
-    var oldStatus = pchToStatus[pch];
-    var oldState = oldStatus && oldStatus[0];
-    var newStatus = null;
-    if (oldState) {
-      // TODO: 適切にoldStateをmergeする必要がある
-      newStatus = [oldState, state];
-      // TODO: oldStateをフェードアウトする必要がある
-    }
-    else {
-      newStatus = [state, null];
-    }
-    pchToStatus[pch] = newStatus;
-
-    va5._logDebug("reserved to play bgm or voice " + path + " : " + ch);
-
-    return ch;
   }
 
+  function canConnect (transitionMode, state1, state2) {
+    transitionMode = va5._assertEnum("transitionMode", transitionMode, ["connectNever", "connectIfSame", "connectIfPossible"]);
+    if (state1.path != state2.path) { return false; }
+    if (transitionMode == "connectNever") { return false; }
+    if (transitionMode == "connectIfPossible") { return true; }
+    return ((state1.pitch == state2.pitch) && (state1.pan == state2.pan));
+  }
 
-  function gotoNextBgm (ch, pch) {
+  function playCommon (isVoice, path, opts) {
+    opts = opts || {};
+    var ch = opts["channel"];
+
+    if (isVoice) {
+      // voiceの場合はch指定は必須
+      if (ch == null) {
+        va5._logError("va5.voice() must need channel option");
+        return;
+      }
+      ch = va5._validateVoiceCh(ch);
+    }
+    else {
+      if (ch == null) { ch = defaultBgmCh; }
+      ch = va5._validateBgmCh(ch);
+    }
+    if (ch == null) { return; }
+    var pchPrefix = isVoice ? "voice_" : "bgm_";
+    var pch = pchPrefix + ch;
+
+    var newState = makeInitialState(isVoice, path, opts);
+
+    var stats = pchToStatus[pch] || [null, null]; pchToStatus[pch] = stats;
+    var oldState = stats && stats[0];
+
+    // oldStateが存在していない場合は即座に再生開始できる
+    if (!oldState) {
+      if (stats[1]) { stats[1].isCancelled = true; }
+      stats[1] = null;
+      stats[0] = newState;
+      playByState(pch, newState);
+      return;
+    }
+
+    // oldStateが存在している場合であっても、再生終了直前であるなら、
+    // 即座に再生停止を行って再生開始してよい
+    var canStopOldStateImmediately;
+    var oldPos = va5._device.calcPos(oldState.playingState);
+    var oldDuration = oldState.as && va5._device.audioSourceToDuration(oldState.as);
+    // posを取るのに失敗した。再生開始前もしくは既に終了している。
+    // 即座に再生停止を行うべきである
+    if (!oldPos) {
+      canStopOldStateImmediately = true;
+    }
+    // durationを取るのに失敗した。再生開始前もしくは既に終了している。
+    // 即座に再生停止を行うべきである
+    else if (!oldDuration) {
+      canStopOldStateImmediately = true;
+    }
+    // ループなら終了直前判定になる事はない。transition処理を行う
+    else if (!oldState.isOneshot) {
+      canStopOldStateImmediately = false;
+    }
+    // oldDurationとoldPosが非常に近い。
+    // 即座に再生停止を行って再生開始した方が安全
+    else if (oldDuration < oldPos + 0.2) {
+      canStopOldStateImmediately = true;
+    }
+
+    // 上記での判定が「即座対応」なら、それを行って完了
+    if (canStopOldStateImmediately) {
+      if (stats[1]) { stats[1].isCancelled = true; }
+      stats[1] = null;
+      disposeState(oldState);
+      stats[0] = newState;
+      playByState(pch, newState);
+      return;
+    }
+
+    var defaultBgmFadeSec = va5.config["default-bgm-fade-sec"];
+
+    if (canConnect(newState.transitionMode, newState, oldState)) {
+      // connectを行う。具体的には、即座に、volume, pitch, panの3パラメータの
+      // 適用をoldStateに行う。そしてnewStateは処分する。
+      // また、もしフェード途中にある場合はフェードイン復帰させる
+      oldState.volume = newState.volume;
+      oldState.volumeTrue = newState.volumeTrue;
+      oldState.pitch = newState.pitch;
+      oldState.pan = newState.pan;
+      va5._device.setVolume(oldState.playingState, oldState.volumeTrue * oldState.fadeVolume);
+      va5._device.setPitch(oldState.playingState, oldState.pitch);
+      va5._device.setPan(oldState.playingState, oldState.pan);
+      if (oldState.fadeVolume != 1) {
+        oldState.fadeEndVolume = 1;
+        oldState.fadeDeltaPerSec = 1 / (defaultBgmFadeSec || 0.01);
+      }
+      stats[0] = oldState;
+      if (stats[1]) { stats[1].isCancelled = true; }
+      stats[1] = null;
+      newState.isCancelled = true;
+      disposeState(newState);
+      return;
+    }
+
+    // oldStateはそのまま維持するが、
+    stats[0] = oldState;
+    // oldStateはフェードアウト終了させる
+    oldState.fadeEndVolume = 0;
+    oldState.fadeDeltaPerSec = -1 / (defaultBgmFadeSec || 0.01);
+    // 古いnextStateがあるならキャンセルしておく必要がある
+    if (stats[1]) { stats[1].isCancelled = true; }
+    // newStateはnextStateへと突っ込む
+    stats[1] = newState;
+    // 未ロードの場合、先行ロードだけ走らせておく
+    if (va5.Cache.isCancelled(newState.path)) {
+      va5.Cache.load(newState.path, function (as) {});
+    }
+  }
+
+  Bgm.playBgm = function (path, opts) {
+    return playCommon(false, path, opts);
+  };
+  Bgm.playVoice = function (path, opts) {
+    return playCommon(true, path, opts);
+  };
+
+
+  // 現在のstateをdisposeし、nextがあるならそれを再生する
+  function stopStateAndPlayNextState (pch) {
     var stats = pchToStatus[pch];
     if (!stats) { return; }
     var state = stats[0];
     var nextState = stats[1];
     disposeState(state);
-    if (!nextState) {
-      pchToStatus[pch] = null;
+    state = nextState;
+    nextState = null;
+    stats[0] = state;
+    stats[1] = nextState;
+    if (state == null) {
+      delete pchToStatus[pch];
       return;
     }
-    stats[0] = nextState;
-    stats[1] = null;
-    // TODO: nextStateの再生を実行。ロードされてないなら待つ等の処理も必要…。実質的にplayTrueに近い処理が必要なのだが…
+    playByState(pch, state);
   }
 
+
+  // pathに対応する再生を即座に停止する。予約も解除する
+  // NB: これは今のところbgmとvoice両方に作用する
+  Bgm.stopImmediatelyByPath = function (path) {
+    if (path == null) { return; }
+    path = va5._validatePath(path);
+    if (path == null) { return; }
+    Object.keys(pchToStatus).forEach(function (pch) {
+      var stats = pchToStatus[pch];
+      if (!stats) { return; }
+      var state = stats[0];
+      var nextState = stats[1];
+      if (path != state.path) { return; }
+      // NB: race condition注意だが、「次のBGMが予約済」なら、
+      //     現在のBGMの停止後に「次のBGM」を再生する必要がある。
+      //     (なおunloadAllからの呼び出しではこの処理をしてはいけない、
+      //     全てをunloadするのだから…)
+      stopStateAndPlayNextState(pch);
+    });
+  };
+
+
   function stopCommon (ch, pch, fadeSec) {
-    if (!fadeSec) { return gotoNextBgm(ch, pch); }
+    if (!fadeSec) { stopStateAndPlayNextState(pch); }
+
+    // TODO: フェード処理
     var stats = pchToStatus[pch];
     if (!stats) { return; }
     var state = stats[0];
-    var nextState = stats[1];
     if (!state) { return; }
-    // TODO: フェード処理
+
+    va5._logDebug("start to fade bgm or voice " + ch + " ttl " + fadeSec);
+
+    var now = va5.getNowMsec();
+
+    // 既に何らかのフェード中だった場合、事前にfadeSecを割合減少させておく
+    // (通常は1→0だが、既にフェード中という事は0.5→0のような変化だという事)
+    fadeSec = fadeSec * state.fadeVolume;
+    if (state.fadeVolume != 1) { fadeSec *= 0.5; }
+    if (!fadeSec) { stopStateAndPlayNextState(pch); }
+
+    state.fadeEndVolume = 0;
+    state.fadeDeltaPerSec = (state.fadeEndVolume - state.fadeVolume) / fadeSec;
   }
-//    va5._logDebug("start to fade se " + ch);
-//    state.fading = true;
-//    var fadeStartMsec = va5.getNowMsec();
-//    var tick = function () {
-//      if (!state.playingState) { return; } // 他の要因で既にshutdownされた場合
-//      var now = va5.getNowMsec();
-//      var elapsedMsec = now - fadeStartMsec;
-//      var progress = elapsedMsec / (fadeSec * 1000);
-//      progress = Math.max(0, Math.min(progress, 1));
-//      var newVolume = state.volumeTrue * (1 - progress);
-//      va5._device.setVolume(state.playingState, newVolume);
-//      if (newVolume) {
-//        window.setTimeout(tick, fadeGranularityMsec);
-//      }
-//      else {
-//        stopImmediatelyByCh(ch);
-//      }
-//    };
-//    window.setTimeout(tick, fadeGranularityMsec);
-//  };
+
 
   Bgm.stopBgm = function (ch, fadeSec) {
-    if (fadeSec == null) { fadeSec = va5.Config["default-bgm-fade-sec"]; }
+    if (fadeSec == null) { fadeSec = va5.config["default-bgm-fade-sec"]; }
     if (ch == null) {
       Object.keys(pchToStatus).forEach(function (pch) {
         if (pch.indexOf("bgm_") !== 0) { return; }
@@ -309,7 +433,7 @@
     stopCommon(ch, pch, fadeSec);
   };
   Bgm.stopVoice = function (ch, fadeSec) {
-    if (fadeSec == null) { fadeSec = va5.Config["default-voice-fade-sec"]; }
+    if (fadeSec == null) { fadeSec = va5.config["default-voice-fade-sec"]; }
     if (ch == null) {
       Object.keys(pchToStatus).forEach(function (pch) {
         if (pch.indexOf("voice_") !== 0) { return; }
@@ -324,130 +448,147 @@
   };
 
 
-
+  var watcherPrevMsec = 0;
   // 多重起動しないようにしてもよい(面倒なので後回し)
+  // 「終了済chのGC」「フェード処理」の両方をここで行う
   Bgm.bootstrapPlayingAudioChannelPoolWatcher = function () {
+    // バックグラウンドsleep中は完全に処理を一時停止する
+    if (va5.config["is-pause-on-background"] && isBackgroundNow) { return; }
+    var now = va5.getNowMsec();
+    var deltaMsec = now - watcherPrevMsec;
+    watcherPrevMsec = now;
+    deltaMsec = Math.max(fadeGranularityMsec, deltaMsec);
     var pch;
     for (pch in pchToStatus) {
       var stats = pchToStatus[pch];
       if (!stats) { continue; }
       var state = stats[0];
       var nextState = stats[1];
-      var isNeedPlayNextBgm = false;
       if (!state) {
         // 通常はありえない筈だが…
         va5._logError("internal error: empty state found in bgm");
-        isNeedPlayNextBgm = true;
+        stopStateAndPlayNextState(pch);
+        continue;
       }
-      // ローディング中なら常に残す(キャンセルなら次の曲へ)
-      if (state && state.loading && !state.cancelled) { continue; }
-      // キャンセルなら次の曲へ
-      if (state && state.cancelled) {
-        isNeedPlayNextBgm = true;
+      // sleepしているなら何もしない(race conditionで起こり得る)
+      if (state.sleepPos != null) {
+        continue;
       }
-      // TODO: ここからどうする？
-      //if (state && state.sleepPos != null) {
-      //  // 特例で常に残す
-      //  continue;
-      //}
-      //playingState: null, // バックグラウンドsleep時にもnullになる事に注意
-      //sleepPos: null, // バックグラウンドsleep時のみ値が保持される
-      //fadein: fadein,
-      //transitionMode: transitionMode,
-      //fadeVolume: fadeVolume,
-      //fadeDelta: fadeDelta,
-      //fadeEnd: fadeEnd,
-      if (state && state.playingState) {
-        // フェード処理
-        // TODO
-        // フェード処理は完了しているか？
-        // TODO
+      // キャンセルされているなら次の曲へ
+      if (state.isCancelled) {
+        stopStateAndPlayNextState(pch);
+        continue;
       }
-      if (state && state.playingState) {
-        // state.playingStateは再生終了しているか？
-        if (state.playingState.playEndSec) { disposeState(state); }
-        state = null;
-        stats[0] = null;
+      // ローディング中なら残す
+      if (state.isLoading) { continue; }
+      // 再生終了しているなら次の曲へ
+      if (!state.playingState) {
+        stopStateAndPlayNextState(pch);
+        continue;
       }
-      // stateが再生終了していたら、GCし、nextStateの再生を開始する
-      // (ただしnextStateがcancelされていたらそのままnextStateもGCする事)
-      // TODO
-      //if (!state.playingState) { return; }
-      //if (state.playingState.playEndSec) { stopImmediatelyByCh(ch); }
-      if (isNeedPlayNextBgm) {
-        // TODO
+      if (state.playingState.playEndSec) {
+        stopStateAndPlayNextState(pch);
+        continue;
+      }
+      // フェード処理を適用
+      if (state.fadeDeltaPerSec) {
+        state.fadeVolume += state.fadeDeltaPerSec * (deltaMsec * 0.001);
+        // overrun check
+        if (0 < state.fadeDeltaPerSec) {
+          if (state.fadeEndVolume < state.fadeVolume) {
+            state.fadeVolume = state.fadeEndVolume;
+          }
+        }
+        else {
+          if (state.fadeVolume < state.fadeEndVolume) {
+            state.fadeVolume = state.fadeEndVolume;
+          }
+        }
+        // 変化したvolumeを適用
+        va5._device.setVolume(state.playingState, state.volumeTrue * state.fadeVolume);
+        // フェード完了か？(↑でoverrun補正しているので==でチェック可能)
+        if (state.fadeEndVolume == state.fadeVolume) {
+          // フェード完了。これ以上フェード処理をしないよう0をセットする
+          state.fadeDeltaPerSec = 0;
+          // またフェードの結果音量が0になった場合のみ曲の停止も行う
+          if (!state.fadeVolume) { stopStateAndPlayNextState(pch); }
+        }
       }
     }
-    // NB: stopImmediatelyByChによって、pchToStatusが全チェックされない
-    //     ケースがありえる。しかしその場合でも次の周回でチェックされるので
-    //     問題ないという事にしている
+    // NB: ↑のループをforEachではなくfor inとした事により、
+    //     pchToStatusが全チェックされないケースがありえる。
+    //     しかしその場合でも次の周回でチェックされるので問題ない
+    //     (それよりはGCの発生量を抑える方を優先する事にした)
     window.setTimeout(Bgm.bootstrapPlayingAudioChannelPoolWatcher, fadeGranularityMsec);
   };
 
 
+  function emitSleep (state) {
+    if (!state) { return; }
+    if (!state.playingState) { return; }
+    va5._device.sleep(state.playingState);
+  }
 
-  // TODO: sleep中にstateの更新やdisposeがあっても正常に動くようにしなくてはならない。この為、va4でやっていたように「退避する」だけでは上手くいかない。これを考えた結果「deviceの方で個別に一時停止するしかない」「state.sleepPosに記録する」という仕様にする事になった
-  var sleepData = null;
+  function emitAwake (state) {
+    if (!state) { return; }
+    if (!state.playingState) { return; }
+    va5._device.resume(state.playingState);
+  }
+
+
   function sleepBackground () {
     // "is-pause-on-background" が偽ならsleepしない
     if (!va5.config["is-pause-on-background"]) { return; }
-    // sleepDataがあるなら既にsleep状態、何もしない
-    if (sleepData) { return; }
-    sleepData = [];
+    // まだsleepしていないものをsleepさせる
     Object.keys(pchToStatus).forEach(function (pch) {
       var stats = pchToStatus[pch];
       if (!stats) { return; }
       var state = stats[0];
       var nextState = stats[1];
-      // TODO
-      // sleepData.push({...});
+      emitSleep(state);
+      emitSleep(nextState);
     });
   }
   function resumeBackground () {
-    // "is-pause-on-background" によらず、sleepしているならresumeする
-    // sleepDataがないなら既にresume状態、何もしない
-    if (!sleepData) { return; }
-    sleepData.slice().forEach(function (data) {
-      // TODO
+    // "is-pause-on-background" によらず、sleepしているものを全てresumeする
+    Object.keys(pchToStatus).forEach(function (pch) {
+      var stats = pchToStatus[pch];
+      if (!stats) { return; }
+      var state = stats[0];
+      var nextState = stats[1];
+      emitAwake(state);
+      emitAwake(nextState);
     });
   }
 
-//;;; バックグラウンドに入ったので、stateの再生を停止する
-//(defn- background-on! [bgm-ch state]
-//  ;; acが存在する場合は基本的には論理再生中。
-//  ;; ただし、:oneshot?再生終了時はその限りではなく、個別に対応する必要がある
-//  (when-let [ac (:ac (:current-param @state))]
-//    ;; NB: :oneshot?のみ、acが存在して再生終了状態になっているケースがある
-//    (let [playing? (device/call! :playing? ac)]
-//      (if-not playing?
-//        (swap! resume-pos-table dissoc bgm-ch)
-//        (let [pos (device/call! :pos ac)]
-//          (swap! resume-pos-table assoc bgm-ch pos)
-//          (device/call! :stop! ac))))))
-//;;; バックグラウンドが解除されたので、復帰させるべき曲があれば、再生を再開する
-//(defn- background-off! [bgm-ch state pos]
-//  (when pos
-//    (let [param (:current-param @state)]
-//      (when-let [ac (:ac param)]
-//        (let [volume (:volume param)
-//              pitch (:pitch param)
-//              pan (:pan param)
-//              oneshot? (:oneshot? param)
-//              fadein (:fadein param)
-//              [i-volume i-pitch i-pan] (util/calc-internal-params
-//                                         :bgm volume pitch pan)
-//              i-volume (* i-volume (:fade-factor @state))]
-//          (device/call! :play! ac pos (not oneshot?) i-volume i-pitch i-pan false)))
-//      (swap! resume-pos-table dissoc bgm-ch))))
-
-  // TODO: 以上はまだ未整理(不完全、重複あり)
-
-
-
+  // バックグラウンド状態かどうかを返す。これは
+  // va5.config["is-pause-on-background"] を考慮しない。
+  Bgm.isInBackground = function () {
+    return isBackgroundNow;
+  };
 
   Bgm.syncBackground = function (isInactiveNow) {
+    if (isInactiveNow) {
+      va5._logDebug("into background");
+    }
+    else {
+      va5._logDebug("into foreground");
+    }
     isBackgroundNow = isInactiveNow;
     isInactiveNow ? sleepBackground() : resumeBackground();
+  };
+
+
+  // NB: これはbgm専用。voiceの対応はなし
+  Bgm.getBgmPos = function (ch) {
+    if (ch == null) { ch = defaultBgmCh; }
+    var pch = "bgm_" + ch;
+    var stats = pchToStatus[pch];
+    if (!stats) { return null; }
+    var state = stats[0];
+    if (!state) { return null; }
+    if (!state.playingState) { return null; }
+    return va5._device.calcPos(state.playingState);
   };
 
 
