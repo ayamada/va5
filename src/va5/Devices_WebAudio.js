@@ -241,11 +241,11 @@
       state.sourceNode.onended = function () { shutdownPlayingState(state); };
     }
 
-    if (state.endPos) {
-      state.sourceNode.start(0, state.startPos, state.endPos - state.startPos);
+    if (state.endPos != null) {
+      state.sourceNode.start(0, state.replayStartPos, state.endPos - state.replayStartPos);
     }
     else {
-      state.sourceNode.start(0, state.startPos);
+      state.sourceNode.start(0, state.replayStartPos);
     }
   }
 
@@ -270,7 +270,7 @@
     if (endPos != null) { endPos = va5._validateNumber("endPos", startPos, endPos, null, buf.duration); }
     var isSleepingStart = !!opts["isSleepingStart"];
 
-    var isNeedFinishImmediately = (endPos < startPos);
+    var isNeedFinishImmediately = (endPos != null) && (endPos < startPos);
     // すぐ終わらせるので、強制的にisSleepingStartと同様の処理を行わせる
     if (isNeedFinishImmediately) { isSleepingStart = true; }
 
@@ -302,8 +302,8 @@
       // この二つは「現在の再生位置」を算出する為の内部用の値。
       // sleep/resumeおよびsetPitchによって変化するので、
       // それ以外の用途には使わない事！
-      playStartSec: now,
-      playStartPos: startPos,
+      replayStartSec: now,
+      replayStartPos: startPos,
 
       // これは「再生終了済」のフラグ用途。値はほぼ利用されない
       playEndSec: null,
@@ -344,16 +344,16 @@
     // NB: race conditionがありえるので、tryで囲む
     try {
       if (state.sourceNode) {
-        var oldStartSec = state.playStartSec;
-        var oldStartPos = state.playStartPos;
+        var oldStartSec = state.replayStartSec;
+        var oldStartPos = state.replayStartPos;
         var now = va5.getNowMsec() / 1000;
         var elapsed = now - oldStartSec;
         var pos = oldStartPos + (elapsed * oldPitch);
-        // NB: もしここで例外が発生したら、playStartSecとplayStartPosは
+        // NB: もしここで例外が発生したら、replayStartSecとreplayStartPosは
         //     そのままになるべきなので、この処理順となっている
         state.sourceNode.playbackRate.value = newPitch;
-        state.playStartSec = now;
-        state.playStartPos = pos;
+        state.replayStartSec = now;
+        state.replayStartPos = pos;
       }
     }
     catch (e) { va5._logDebug(e); }
@@ -388,16 +388,20 @@
   // この音源の現在の再生位置を返す。ほぼ音ゲー用。
   // 再生終了後はnullを返す、要注意。
   // pitch設定によらず、返される値は 0 ～ buf.duration の間の値となる。
-  // ループ分も考慮されない。しかしループ時には巻き戻りが発生するので、
-  // 巻き戻りが起こったかを呼び出し元でチェックすれば
-  // ループをカウントする事は一応可能。
+  // ループ時は巻き戻る(resumeの為の仕様)
   device.calcPos = function (state) {
     if (!state) { return null; }
     if (state.playEndSec != null) { return null; }
-    if (state.playPausePos) { return state.playPausePos; }
+    if (state.playPausePos != null) { return state.playPausePos; }
     var now = va5.getNowMsec() / 1000;
-    var elapsed = now - state.playStartSec;
-    return state.playStartPos + (elapsed / state.pitch);
+    var elapsed = now - state.replayStartSec;
+    var rawPos = state.replayStartPos + (elapsed / state.pitch);
+    var loopStart = state.loopStart;
+    if (loopStart == null) { loopStart = 0; }
+    var loopEnd = state.loopEnd;
+    if (loopEnd == null) { loopEnd = state.as.buf.duration; }
+    if (loopEnd <= loopStart) { return null; }
+    return loopStart + ((rawPos - loopStart) % (loopEnd - loopStart));
   };
 
 
@@ -424,9 +428,9 @@
     if (!state.sourceNode) { return; }
     if (state.playEndSec != null) { return; }
     if (state.playPausePos == null) { return; } // pause状態ではなかった
-    state.playStartPos = state.playPausePos;
+    state.replayStartSec = va5.getNowMsec() / 1000;
+    state.replayStartPos = state.playPausePos;
     state.playPausePos = null;
-    state.playStartSec = va5.getNowMsec() / 1000;
     // nodesを再生成する(古いものは除去してよい)
     appendNodes(state, false);
   };

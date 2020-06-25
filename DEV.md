@@ -19,6 +19,9 @@ TODO
 
 以下、リリースビルドの為の処理の一時メモ
 
+- 一番外側のビルドツールはMakefileにする
+    - これについてはddiでやっているものをベースとする
+
 (src/va5_version.jsの更新)
 (最終的には cat src/va5/*.js とかで一つのファイルにする。これがva5.jsになる)
 (gccのoptimizationsでmin化。externs対象は「va5直下の小文字で始まるエントリ」のみとなる。「_で始まるエントリ」はprivate(mungeしてok)、「大文字で始まるエントリ」はクラス名(mungeしてok)。トップレベル汚染はva5キーのみ)
@@ -39,10 +42,11 @@ TODO
     - javascriptの仕様上、該当コードを走らせないと変なところがないか分からないので、走らせる必要がある
 
 - ieでの動作確認
-    - 同上。基本的にはdumbモードでの動作になるのだが、「ieではこのjavascript構文に対応していない」等がありえるので、個別の動作確認が必要
+    - 同上。基本的にはdumbモードでの動作となり、音が出ないのは想定通りなのだが、意図せずに例外が投げられるのはとても困る(ieでのみ「新しいjavascript構文に対応していない」等の原因で例外が投げられる可能性があるので、個別チェックが必要)
 
 - 古いandroid/iOSでの動作確認
     - 同上
+    - WebAudio実装が中途半端な時期の端末での動作確認がとても厳しい(ていうかちょっと無理)
 
 
 ## TODO
@@ -67,51 +71,49 @@ TODO
 
 ## 一時メモ
 
-現状だと「loopStartが未指定の場合はstartPosを流用する」ようになっているが、おそらくこれは逆の方がよい。「startPosが未指定の場合はloopStartを流用する(あれば)」方がよい。なんでかというと、MV互換タグを読み込む際にそうなる方が自然な為
-(MVではstartPos endPosがない。またloopStartはあるがloopEndがなくloopLengthでの指定となっている)
-
-
-
-- 「bgm/voiceの再生が終了したら自動的にunloadまで行うconfig項目」の追加と実装を行う事
-    - ゲーム内のbgmやvoiceの量が多く全てをオンメモリで持つ訳にはいかない場合、この処理が必須になる
+実験的に、デプロイスクリプトのプロトタイプを作ってみる
+内容は↑の「リリース手順」のところに仮配置する
 
 
 
 
-- 動作確認を取る
-    - va5.getBgmPos(ch);
-        - 下記の問題あり、修正して再確認を取る事
-    - va5.bgm(path, {});
-        - startPos endPos loopStart loopEnd の指定が想定通り動くか確認する事
-        - 下記の問題あり、修正して再確認を取る事
-    - va5.stopBgm(ch, fadeSec);
-        - 下記の問題あり、修正して再確認を取る事
-
-
-その他の問題点について
-
-
-バックグラウンド復帰後にstopBgmしてもフェードアウトが始まらない
-何らかのステートが残ってしまっている？
-
-バックグラウンド復帰時に最初からの再生に戻ってしまう。直す事
-しかし…先にcalcPosを直すべきなのでは？
-
-
-getBgmPos / device.calcPos の挙動がおかしい。
-以下のようになっている。
-- ループ時に巻き戻らない
-- バックグラウンド一時停止等が起こっても巻き戻らない(おそらく正確になってない)
-
-
-ループ時に少し無音部分がある
-後述の「ファイル形式について」を参照
+play系のoptsで取れるパラメータがどうにも分かりづらいので、もうちょっとなんとかしたい。具体的には、規定でないパラメータがあった場合は_logErrorを使って取れるパラメータの一覧を出すようにしたい
 
 
 
 
-以下の機能もinterfaceに登録する事を検討
+startPos endPos loopStart loopEnd の名前を変更する
+playStart playEnd loopStart loopLength で、単位はsecではなくframesにする？
+項目名を増やして、どちらでも指定できるようにすべきなのでは？
+(うしろにSecとついていれば秒、そうでなければframes)
+playStart playEnd loopStart loopLength playStartSec playEndSec loopStartSec loopLengthSec の8種類とし、Secなしはframes、Secありは秒で扱う
+内部的には秒で扱う方で統一する(WebAudioがそうなってるので)
 
+
+上記以外にも、play系のopts、deviceのstate、bgmのstate、seのstate、これらのkeyの名前をより分かりやすいものに変更したい(少なくとも公開前には何とかしたい)
+
+
+ファイル名からメタ指定情報を取得できるようにする
+- foo.m4a なら foo__LS123_LL456.m4a みたいな名前にする、という形式
+- とりあえず対応が必要なのはLSとLLのみでok。PSとPLも対応してよい
+- この情報は今のところは、必要になったタイミングで毎回parseする事にする。大したコストではないので
+    - このparse処理はva5.Cache内に書く(bgmでもseでも参照するので)
+    - この単位はframesなので、これをsecに変換する処理も必要
+        - この為には、asからサンプリングレート(Hzの方。ビットレートではない)を取れる必要がある。用意する事
+            - AudioBuffer.sampleRateプロパティで取れるようだ
+                - https://developer.mozilla.org/ja/docs/Web/API/AudioBuffer/sampleRate
+
+
+そろそろビルドスクリプト等を用意する事
+
+
+BGMのconnect時に、isOneshotフラグやloop系パラメータが変動している場合は、connectしないようにする事
+
+
+
+
+
+- https://qiita.com/zprodev/items/7fcd8335d7e8e613a01f にあるリーク対策等を組み込む事
 
 
 - playBgmの新オプションとして「今流してるoneshotのbgmが終わったら次にこれを再生する」機能を追加
@@ -120,6 +122,8 @@ getBgmPos / device.calcPos の挙動がおかしい。
         - stop時にはnextStateも消すようにすればよい
             - TODO: 忘れずに実装する事！
 
+
+getDuration()に「仕様上どうしても正確にならない」「ループに正確さが必要ならLOOP系パラメータをつけるしかない」とドキュメントに書いておく事
 
 
 
@@ -143,41 +147,24 @@ functionでラッピングしているから。また _device のチェックに
 
 
 
-## 仕様一時メモ
+## その他のメモ
 
-あとで消すか、「その他のメモ」に移動させる事
-
-isOneshot=falseで再生し、その後にisOneshot=trueでconnectした際に、isOneshotが反映されない問題あり。しかしこれはどうしようもないので仕様とする事に
-
-
-- va5での新仕様
-    - jsのみ
+- 設計方針メモ
+    - jsでの実装とする
+    - 単一jsファイルでのみの提供とする(パッケージャに頼らなくても手軽に試せる)
     - ビルドはMakefileかshスクリプトかなんかで行う。webpackは使わない
-        - gccのoptimizationsで圧縮する。externsファイルも用意する
-    - deviceレイヤの分離はva4同様に行うが、HtmlAudio対応はしない。WebAudioとdumbのみ用意する
-        - 将来にelectron対応等しやすいようにしておく
+        - gccのoptimizationsで圧縮する
+            - この為にexternsファイルも用意する必要がある。externsファイルはスクリプトか何かで抽出するようにしたい(手で管理したくない)
+    - va4で行っていたHtmlAudio対応は廃止。WebAudioとDumbのみとする
     - ie非対応。無音で通す
-        - edgeについては一応通す
-            - edgeでdecodeに失敗する可能性のある可変ビットレートmp3は諦める。固定ビットレートmp3=もしくはm4a推奨とする
-                - 後述のファイル形式の問題あり
+        - WebAudioがないので当然なのだが、新し目のjs構文を使っていてロードエラーが起こったりという事がないようにする必要がある
     - 古いスマホ非対応。無音で通す
         - どう判定するかが問題。WebAudio非対応なら問題ないが、中途半端に対応している時期のものが問題になる
-    - 音源のfallback(wildcard)指定は廃止。指定した音源が再生できないものだった場合は無音で通す
-        - 推奨形式はm4a。次点で固定ビットレートのmp3。ogg等は再生できない環境があるという事が分かっているなら指定できる(electron実行のみ等で)
-            - 後述のファイル形式の問題あり
+    - va4で実装していた「音源のfallback/wildcard指定」は廃止。音源ファイルは一個指定固定に
+    - va4での各種バッドノウハウ対策を組み込む事
+    - https://qiita.com/zprodev/items/7fcd8335d7e8e613a01f にあるリーク対策等を組み込む事
+    - voice実装は、seではなく、「oneshotのみのbgm」的な扱いにする(各チャンネルでの同時発声数を1に抑える為)
 
-- va4から引き継ぐべき仕様について
-    - va4の各種バッドノウハウ対策を組み込む
-    - https://qiita.com/zprodev/items/7fcd8335d7e8e613a01f - にあるリーク対策等を組み込む
-
-- voice実装メモ
-    - 扱いとしてはseではなく、「oneshotのみのbgm」的な扱いにする
-        - 各チャンネルでの同時発声数を1に抑える為
-
-
-
-
-## その他のメモ
 
 - assertを仕込む際のルール
     - 可能な限り例外は投げない(assertは常用しない)
@@ -193,50 +180,47 @@ isOneshot=falseで再生し、その後にisOneshot=trueでconnectした際に�
 
 - mp3
     - WebAudioがサポートされているほとんどの環境で再生可能
-    - 可変ビットレート？だとedge系で再生エラーになる事がある。固定ビットレート推奨
+    - ABR/VBRだとedgeでdecodeAudioDataが例外を投げる事がある(正確な条件は不明)。CBR推奨
         - lameだと `-strictly-enforce-ISO` オプションをつけるべきかもしれない
-    - エンコーダが勝手に無音部分を曲の頭に追加してしまう。とても問題になる
-        - どうもこれは避けられないようだ…。lameは独自の拡張情報を付与して、これに対応しているデコーダは無音部分を除去できるようにしている。が、対応しているのはchromeのみのようだ(chrome以外では無音部分が残る)
-    - また上記とは別に、mp3の仕様上、曲の長さはフレーム単位になる必要がある。44100Hzなら0.0261秒単位。なので曲の末尾にわずかに無音部分が付いてしまう
-        - これはmp3の仕様なので避けられない。しかしmp3曲頭の無音やm4aの末尾無音と比べると大した量ではないので許容範囲内
-        - これもchromeではLAME INFO tagによってデコード時に除去できているっぽい
-        - この辺の詳細は https://lame.sourceforge.io/tech-FAQ.txt に書いてある(英語)。基本的にmp3の仕様的に避けられないもののようだ(だから追加のLAME INFO tagによって回避する、という事になったようだ)
-    - 後述のLOOPSTART/LOOPLENGTHで対応する場合は、LAME INFO tagを入れてしまわないように注意する事(入れてしまうとchromeだけLAME INFO tagに対応しているのでずれてしまう)
-        - しかし、どうやればLAME INFO tagなしにできるのかはよく分かっていない
+    - mp3の仕様上、勝手に無音部分が曲頭および曲末尾に追加されてしまう。とても問題になる
+        - LAME INFO tagに対応したデコーダではこの無音部分を適切に除去できる。が、対応状況はブラウザによってまちまち、これを前提にする事はできない
+        - この辺の詳細は https://lame.sourceforge.io/tech-FAQ.txt に書いてある
 
 - m4a
     - WebAudioがサポートされているほとんどの環境で再生可能
-    - デコーダによっては勝手に無音部分を曲の最後に追加してしまう。SEでは問題ないがループBGMで問題になる
-        - safari等のapple系デコーダは問題ないようだ
-        - chromeおよびaudacityに代表されるffmpegを利用するデコーダは少し無音部分を追加してしまう
-        - firefoxのデコーダはかなり多めの無音部分を追加してしまう
-    - mp3とは違い、無音部分が曲頭につく事はないので、比較的扱いやすい
+    - デコーダによっては勝手に無音部分が曲末尾に追加されてしまう。SEでは問題ないがループBGMで問題になる
+        - safari等のapple系デコーダは0、chromeおよびffmpeg系デコーダは少し、firefoxだとたくさん
+    - mp3とは違い、曲頭に無音部分がつく事はないので、mp3よりは扱いやすい
 
 - ogg
     - mp3やm4aにある無音部分追加の問題はない
     - edgeとモバイル系ブラウザで再生できない問題がある(古いfirefoxも)
 
 
+# 古くなったメモ
 
-ではどうするか？
+- mp3/m4a/oggにタグを書き込む方法
+    - https://mutagen.readthedocs.io/en/latest/ を使う
 
-- m4aを採用し、ツクールMV式のLOOPSTARTとLOOPLENGTHタグを埋め込む
-    - これしかないのでは？
-    - エンコーダ側の設定が面倒だが…
-    - LOOPSTART/LOOPLENGTHタグの読み取りはbytearrayから手で行う必要がある(ツクールMVを参考にできる)
-
-- js/wasmでoggをデコードする
+- oggを採用し、ogg非対応環境ではstbvorbis.jsを使ってデコードする方法
     - https://qiita.com/hajimehoshi/items/458b8f3fe92fbd5c6701
-    - これを採用する場合、va5.js単体配布はできなくなる問題がある
-    - 動作についてはおそらく問題ない
+    - https://forum.tkool.jp/index.php?threads/%E9%9F%B3%E5%A3%B0%E3%82%92%E9%AB%98%E9%80%9F%E3%81%AB%E8%AA%AD%E3%81%BF%E8%BE%BC%E3%82%80%E3%83%97%E3%83%A9%E3%82%B0%E3%82%A4%E3%83%B3.3095/ での対応を見ていると、扱うのはどうにも大変そうだという感じが強い…
+    - 配布形式が単一のjsファイルにできなくなるのが問題
 
-- 独自のエンコーダ/デコーダを採用する
-    - https://github.com/redlily/training-webaudio-compression のような奴
-    - ちょっと大変すぎない？
-    - エンコードは低速でもよいが、デコードは可能な限り高速なのが望ましいので、nativeな実装か、wasmの実装がほしいところ
+- jsからmp3を生成する
+    - https://github.com/zhuker/lamejs を使う
 
-- 他に良い手はあるか？
-    - 多分ない
+- jsからm4aを生成する
+    - https://github.com/Kagami/ffmpeg.js を使う
 
+
+ffmpegでm4aを生成する場合のオプション指定
+
+```
+ffmpeg -i input.wav -vn -ac 1 -ar 44100 -ab 64k -acodec aac output.m4a
+```
+
+- `-ac` 1で強制モノラル、2でステレオ
+- `-ab` でビットレート指定。m4aは32k～64kでも実用範囲内(mp3だとボロボロになる)
 
 

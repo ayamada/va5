@@ -30,6 +30,7 @@
     "default-se-fade-sec": 0,
     "default-voice-fade-sec": 0.1,
     "is-pause-on-background": true,
+    "is-unload-automatically-when-finished-bgm": false,
     "se-chattering-sec": 0.05,
     "additional-query-string": null // 自動ではuriエスケープされない、要注意
   };
@@ -91,6 +92,12 @@
     },
     get "is-pause-on-background" () { return d["is-pause-on-background"]; },
     set "is-pause-on-background" (v) { d["is-pause-on-background"] = !!v; },
+    get "is-unload-automatically-when-finished-bgm" () {
+      return d["is-unload-automatically-when-finished-bgm"];
+    },
+    set "is-unload-automatically-when-finished-bgm" (v) {
+      d["is-unload-automatically-when-finished-bgm"] = !!v;
+    },
     get "se-chattering-sec" () { return d["se-chattering-sec"]; },
     set "se-chattering-sec" (v) {
       v = va5._validateNumber("se-chattering-sec", 0, v, null);

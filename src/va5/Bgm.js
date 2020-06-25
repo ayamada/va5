@@ -88,17 +88,42 @@
     });
   };
 
+  function unloadIfNeeded (path) {
+    if (!va5.config["is-unload-automatically-when-finished-bgm"]) { return; }
+    // 参照可能な全stateをなめて、このpathが1個もなければunloadする
+    // (再生中や予約が1個でもあるならunloadはしない)
+    var found = false;
+    var pch;
+    for (pch in pchToStatus) {
+      var stats = pchToStatus[pch];
+      if (!stats) { continue; }
+      var s = stats[0];
+      if (s && (path == s.path)) {
+        found = true;
+        break;
+      }
+      s = stats[1];
+      if (s && (path == s.path)) {
+        found = true;
+        break;
+      }
+    }
+    if (!found) {
+      Cache.unload(path);
+    }
+  }
 
   // これは再生即停止も兼ねている
   function disposeState (state) {
     if (!state) { return; }
-    if (state.disposed) { return; }
+    if (state.disposed) { unloadIfNeeded(state.path); return; }
     state.disposed = true;
     state.isCancelled = true;
     state.sleepPos = null;
-    if (!state.playingState) { return; }
+    if (!state.playingState) { unloadIfNeeded(state.path); return; }
     va5._device.disposePlayingState(state.playingState);
     state.playingState = null;
+    unloadIfNeeded(state.path);
   }
 
 
@@ -118,15 +143,15 @@
     var pitch = va5._validateNumber("pitch", 0.1, opts["pitch"]||1, 10, 1);
     var pan = va5._validateNumber("pan", -1, opts["pan"]||0, 1, 0);
 
-    var isOneshot = !!opts["isOneshot"];
-    if (isVoice) { isOneshot = true; } // voiceは常にoneshot。これが問題になるならvoiceではなくbgm扱いで再生すべき
     var loopStart = va5._validateNumber("loopStart", 0, opts["loopStart"]||0, null, 0);
     var loopEnd = opts["loopEnd"] || null;
     if (loopEnd != null) { loopEnd = va5._validateNumber("loopEnd", 0, loopEnd, null, null); }
 
+
     var startPos = va5._validateNumber("startPos", 0, opts["startPos"]||loopStart, null, loopStart);
-    var endPos = opts["endPos"] || null;
-    if (endPos != null) { endPos = va5._validateNumber("endPos", 0, endPos, null, null); }
+    var endPos = opts["endPos"];
+    if (endPos != null) { endPos = va5._validateNumber("endPos", null, endPos, null, null); }
+    if (isVoice && !endPos) { endPos = 0; } // voiceは常に非ループ。これが問題になるならvoiceではなくbgm扱いで再生すべき
 
     // fadeを適用する前の再生音量
     var volumeTrue = volume * (isVoice ? baseVolumeVoice : baseVolume);
@@ -150,7 +175,6 @@
       pitch: pitch,
       pan: pan,
 
-      isOneshot: isOneshot,
       loopStart: loopStart,
       loopEnd: loopEnd,
 
@@ -206,22 +230,39 @@
         if (!stats || (state !== stats[0])) { return; }
         stats[0] = stats[1];
         stats[1] = null;
-        if (stats[0]) { playByState(pch, stats[0]); }
+        if (stats[0]) {
+          playByState(pch, stats[0]);
+        }
+        else {
+          delete pchToStatus[pch];
+        }
         return;
       }
       state.as = as;
       // NB: ローディング中にmergeによってパラメータが
       //     変化している場合がある。なので元の値を参照せずに、
       //     stateから参照し直す必要がある
+      var endPosTrue = state.endPos;
+      if (endPosTrue <= 0) {
+        var duration = va5._device.audioSourceToDuration(as);
+        if (0 < duration) {
+          endPosTrue = (endPosTrue % duration) + duration;
+        }
+        else {
+          //va5._logError("invalid duration found " + state.path + " : " + pch);
+          // deviceがdumbの時にこっちに来る。適当なダミー値をセットする
+          endPosTrue = 1;
+        }
+      }
       var deviceOpts = {
         volume: state.volumeTrue * state.fadeVolume,
         pitch: state.pitch,
         pan: state.pan,
-        isLoop: !state.isOneshot,
+        isLoop: !state.endPos,
         loopStart: state.loopStart,
         loopEnd: state.loopEnd,
         startPos: state.startPos,
-        endPos: state.endPos,
+        endPos: endPosTrue,
         isSleepingStart: (state.sleepPos != null)
       };
       va5._logDebug("loaded. play bgm or voice " + state.path + " : " + pch);
@@ -287,7 +328,7 @@
       canStopOldStateImmediately = true;
     }
     // ループなら終了直前判定になる事はない。transition処理を行う
-    else if (!oldState.isOneshot) {
+    else if (!oldState.endPos) {
       canStopOldStateImmediately = false;
     }
     // oldDurationとoldPosが非常に近い。
@@ -449,15 +490,21 @@
 
 
   var watcherPrevMsec = 0;
-  // 多重起動しないようにしてもよい(面倒なので後回し)
+  // 多重起動しないようにしてもよい(とても面倒なので後回し)
   // 「終了済chのGC」「フェード処理」の両方をここで行う
   Bgm.bootstrapPlayingAudioChannelPoolWatcher = function () {
+    // まず次回実行の予約を最初にしておく
+    window.setTimeout(Bgm.bootstrapPlayingAudioChannelPoolWatcher, fadeGranularityMsec);
     // バックグラウンドsleep中は完全に処理を一時停止する
     if (va5.config["is-pause-on-background"] && isBackgroundNow) { return; }
     var now = va5.getNowMsec();
     var deltaMsec = now - watcherPrevMsec;
     watcherPrevMsec = now;
     deltaMsec = Math.max(fadeGranularityMsec, deltaMsec);
+    // NB: ↓のループをforEachではなくfor inとした事により、
+    //     pchToStatusが全チェックされないケースがありえる。
+    //     しかしその場合でも次の周回でチェックされるので問題ない
+    //     (それよりはGCの発生量を抑える方を優先する事にした)
     var pch;
     for (pch in pchToStatus) {
       var stats = pchToStatus[pch];
@@ -515,23 +562,22 @@
         }
       }
     }
-    // NB: ↑のループをforEachではなくfor inとした事により、
-    //     pchToStatusが全チェックされないケースがありえる。
-    //     しかしその場合でも次の周回でチェックされるので問題ない
-    //     (それよりはGCの発生量を抑える方を優先する事にした)
-    window.setTimeout(Bgm.bootstrapPlayingAudioChannelPoolWatcher, fadeGranularityMsec);
   };
 
 
   function emitSleep (state) {
     if (!state) { return; }
     if (!state.playingState) { return; }
+    if (state.sleepPos) { return; }
+    state.sleepPos = va5._device.calcPos(state.playingState) || 0;
     va5._device.sleep(state.playingState);
   }
 
   function emitAwake (state) {
     if (!state) { return; }
     if (!state.playingState) { return; }
+    if (state.sleepPos == null) { return; }
+    state.sleepPos = null;
     va5._device.resume(state.playingState);
   }
 
