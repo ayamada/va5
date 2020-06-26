@@ -81,16 +81,24 @@ play系のoptsで取れるパラメータがどうにも分かりづらいので
 
 
 
+ループパラメータ関連の修正
+以下の順で対応していく
 
-startPos endPos loopStart loopEnd の名前を変更する
-playStart playEnd loopStart loopLength で、単位はsecではなくframesにする？
-項目名を増やして、どちらでも指定できるようにすべきなのでは？
-(うしろにSecとついていれば秒、そうでなければframes)
-playStart playEnd loopStart loopLength playStartSec playEndSec loopStartSec loopLengthSec の8種類とし、Secなしはframes、Secありは秒で扱う
-内部的には秒で扱う方で統一する(WebAudioがそうなってるので)
+
+1. startPos endPos を playStartSec playEndSec にrename
+2. loopStart loopEnd を loopStartSec loopEndSec にrename
+3. playStart playEnd を実装(frame単位の方)
+4. loopStart loopEnd を実装(frame単位の方)
+5. loopLength loopLengthSec を実装
+6. pathからloopStart loopLengthを読み取る機能を実装
+
+
+
+
 
 
 上記以外にも、play系のopts、deviceのstate、bgmのstate、seのstate、これらのkeyの名前をより分かりやすいものに変更したい(少なくとも公開前には何とかしたい)
+
 
 
 ファイル名からメタ指定情報を取得できるようにする
