@@ -243,7 +243,7 @@
       //     変化している場合がある。なので元の値を参照せずに、
       //     stateから参照し直す必要がある
       var endPosTrue = state.endPos;
-      if (endPosTrue <= 0) {
+      if ((endPosTrue != null) && (endPosTrue <= 0)) {
         var duration = va5._device.audioSourceToDuration(as);
         if (0 < duration) {
           endPosTrue = (endPosTrue % duration) + duration;
@@ -258,7 +258,6 @@
         volume: state.volumeTrue * state.fadeVolume,
         pitch: state.pitch,
         pan: state.pan,
-        isLoop: !state.endPos,
         loopStart: state.loopStart,
         loopEnd: state.loopEnd,
         startPos: state.startPos,
@@ -328,12 +327,12 @@
       canStopOldStateImmediately = true;
     }
     // ループなら終了直前判定になる事はない。transition処理を行う
-    else if (!oldState.endPos) {
+    else if (oldState.endPos == null) {
       canStopOldStateImmediately = false;
     }
     // oldDurationとoldPosが非常に近い。
     // 即座に再生停止を行って再生開始した方が安全
-    else if (oldDuration < oldPos + 0.2) {
+    else if (oldDuration < oldPos + 0.1) {
       canStopOldStateImmediately = true;
     }
 
@@ -533,7 +532,7 @@
         stopStateAndPlayNextState(pch);
         continue;
       }
-      if (state.playingState.playEndSec) {
+      if (va5._device.isFinished(state.playingState)) {
         stopStateAndPlayNextState(pch);
         continue;
       }

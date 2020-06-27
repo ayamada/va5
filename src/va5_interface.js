@@ -83,6 +83,12 @@
   va5.getDuration = va5.Cache.getDuration;
 
 
+  // NB: ロード済のpathのみ取得可能、未ロードの場合はnullが返る
+  //     WebAudio非対応の場合は0が返る、注意
+  //     単位はHz(大体は44100, 48000, 22050, あたりの値が返る)
+  va5.getSampleRate = va5.Cache.getSampleRate;
+
+
   va5.se = function (path, opts) {
     va5._logDebug(["called va5.se", path, opts]);
     va5.init();

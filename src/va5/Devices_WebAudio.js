@@ -96,7 +96,7 @@
     // stopSafelyによって onended が発生する可能性があるので、
     // 先にdisposedフラグを立てておく(onendedが発生しても二重実行を防げる)
     state.disposed = true;
-    state.playEndSec = va5.getNowMsec() / 1000;
+    state.playEndedTimestamp = va5.getNowMsec() / 1000;
 
     stopSafely(state);
     disconnectSafely(state.sourceNode);
@@ -133,6 +133,14 @@
     if (as.disposed) { return null; }
     if (!as.buf) { return null; }
     return as.buf.duration;
+  }
+
+
+  device.audioSourceToSampleRate = function (as) {
+    if (as == null) { return null; }
+    if (as.disposed) { return null; }
+    if (!as.buf) { return null; }
+    return as.buf.sampleRate;
   }
 
 
@@ -178,6 +186,13 @@
       try {
         ac.decodeAudioData(xhr.response, function (buf) {
           if (!buf) { errorEnd2(); return; }
+          // NB: ロードに成功しても、極端に短い曲はエラー扱いにする
+          //     (無限ループで過負荷になるのを避ける為)
+          if (buf.duration < 0.01) {
+            va5._logError(["duration too short", path]);
+            errorEnd1();
+            return;
+          }
           cont(device.bufToAudioSource(buf));
           return;
         }, errorEnd2);
@@ -227,7 +242,7 @@
     state.pannerNodeType = pannerNodeType;
     state.pannerNode = pannerNode;
 
-    if (state.isLoop) {
+    if (state.endPos == null) {
       state.sourceNode.loop = true;
       state.sourceNode.loopStart = state.loopStart;
       state.sourceNode.loopEnd = state.loopEnd;
@@ -257,27 +272,33 @@
     if (as.disposed) { return null; }
     if (!as.buf) { return null; }
     var buf = as.buf;
+    var duration = buf.duration;
 
     var volume = opts["volume"]; if (volume == null) { volume = 1; }
     volume = va5._validateNumber("volume", 0, volume, 10, 0);
     var pitch = va5._validateNumber("pitch", 0.1, opts["pitch"]||1, 10, 1);
     var pan = va5._validateNumber("pan", -1, opts["pan"]||0, 1, 0)
-    var isLoop = !!opts["isLoop"];
+    // NB: loopStart=nullの時はloopStart=0とする
     var loopStart = va5._validateNumber("loopStart", 0, opts["loopStart"]||0, null, 0);
-    var loopEnd = va5._validateNumber("loopEnd", null, opts["loopEnd"]||buf.duration, null, buf.duration);
-    var startPos = va5._validateNumber("startPos", 0, opts["startPos"]||0, null, 0);
-    var endPos = opts["endPos"] || null;
-    if (endPos != null) { endPos = va5._validateNumber("endPos", startPos, endPos, null, buf.duration); }
+    // NB: loopEnd=nullの時はloopEnd=durationとする
+    var loopEnd = va5._validateNumber("loopEnd", null, opts["loopEnd"]||duration, null, duration);
+    // NB: startPos=nullの時はstartPos=loopStartとする
+    var startPos = opts["startPos"];
+    if (startPos == null) { startPos = loopStart; }
+    startPos = va5._validateNumber("startPos", 0, startPos, null, 0);
+    // NB: endPos=nullの時はendPos=nullを維持する
+    var endPos = opts["endPos"];
+    if (endPos != null) { endPos = va5._validateNumber("endPos", startPos, endPos, null, duration); }
     var isSleepingStart = !!opts["isSleepingStart"];
 
     var isNeedFinishImmediately = (endPos != null) && (endPos < startPos);
     // すぐ終わらせるので、強制的にisSleepingStartと同様の処理を行わせる
     if (isNeedFinishImmediately) { isSleepingStart = true; }
 
-    if (isLoop && (loopEnd <= loopStart)) {
+    if ((endPos == null) && (loopEnd <= loopStart)) {
       va5._logError(["found confused loopStart and loopEnd", loopStart, loopEnd]);
       loopStart = 0;
-      loopEnd = buf.duration;
+      loopEnd = duration;
     }
 
     var now = va5.getNowMsec() / 1000;
@@ -287,7 +308,6 @@
       volume: volume,
       pitch: pitch,
       pan: pan,
-      isLoop: isLoop,
       loopStart: loopStart,
       loopEnd: loopEnd,
       startPos: startPos,
@@ -300,15 +320,16 @@
       pannerNode: null,
 
       // この二つは「現在の再生位置」を算出する為の内部用の値。
-      // sleep/resumeおよびsetPitchによって変化するので、
-      // それ以外の用途には使わない事！
-      replayStartSec: now,
+      // sleep/resumeおよびsetPitchによって変化する。
+      // 上記以外の用途には使わない事！
+      replayStartTimestamp: now,
       replayStartPos: startPos,
+      playPausedPos: isSleepingStart ? startPos : null,
 
+      // これはse-chattering-secの判定で必要な「いつ開始したか」の情報
+      playStartedTimestamp: now,
       // これは「再生終了済」のフラグ用途。値はほぼ利用されない
-      playEndSec: null,
-
-      playPausePos: isSleepingStart ? startPos : null
+      playEndedTimestamp: null
     };
     appendNodes(state, isSleepingStart);
 
@@ -344,15 +365,15 @@
     // NB: race conditionがありえるので、tryで囲む
     try {
       if (state.sourceNode) {
-        var oldStartSec = state.replayStartSec;
+        var oldStartSec = state.replayStartTimestamp;
         var oldStartPos = state.replayStartPos;
         var now = va5.getNowMsec() / 1000;
         var elapsed = now - oldStartSec;
         var pos = oldStartPos + (elapsed * oldPitch);
-        // NB: もしここで例外が発生したら、replayStartSecとreplayStartPosは
-        //     そのままになるべきなので、この処理順となっている
         state.sourceNode.playbackRate.value = newPitch;
-        state.replayStartSec = now;
+        // NB: もし↑で例外が発生した時は、replayStartTimestampと
+        //     replayStartPosは以前のままになるべきなので、↑の後に変更する
+        state.replayStartTimestamp = now;
         state.replayStartPos = pos;
       }
     }
@@ -391,22 +412,26 @@
   // ループ時は巻き戻る(resumeの為の仕様)
   device.calcPos = function (state) {
     if (!state) { return null; }
-    if (state.playEndSec != null) { return null; }
-    if (state.playPausePos != null) { return state.playPausePos; }
+    if (state.playEndedTimestamp != null) { return null; }
+    if (state.playPausedPos != null) { return state.playPausedPos; }
     var now = va5.getNowMsec() / 1000;
-    var elapsed = now - state.replayStartSec;
+    var elapsed = now - state.replayStartTimestamp;
     var rawPos = state.replayStartPos + (elapsed / state.pitch);
+    // ループなしなら、そのままの値を再生位置として利用できる
+    if (state.endPos != null) { return rawPos; }
+    // ループありの場合は巻き戻りを考慮しなくてはならない
     var loopStart = state.loopStart;
-    if (loopStart == null) { loopStart = 0; }
     var loopEnd = state.loopEnd;
-    if (loopEnd == null) { loopEnd = state.as.buf.duration; }
-    if (loopEnd <= loopStart) { return null; }
+    if (loopEnd <= loopStart) {
+      va5._logError(["found confused loopStart and loopEnd", loopStart, loopEnd]);
+      return null;
+    }
     return loopStart + ((rawPos - loopStart) % (loopEnd - loopStart));
   };
 
 
   // BGMのバックグラウンド一時停止用。それ以外の用途には使わない事(衝突する為)
-  // 実装としては、 playPausePos に現在のposを記録しておき、完全停止する。
+  // 実装としては、 playPausedPos に現在のposを記録しておき、完全停止する。
   // 再開時には古いnodeをGCし、全く新しいnodeを生成して差し替える。
   // なんでこんな仕様なのかというと、AudioContext.suspend()は呼べないし、
   // sourceNodeだけ一時停止する事はできない為。
@@ -414,9 +439,9 @@
   device.sleep = function (state) {
     if (!state) { return; }
     if (!state.sourceNode) { return; }
-    if (state.playEndSec != null) { return; }
-    if (state.playPausePos != null) { return; } // 既にpause状態だった
-    state.playPausePos = device.calcPos(state);
+    if (state.playEndedTimestamp != null) { return; }
+    if (state.playPausedPos != null) { return; } // 既にpause状態だった
+    state.playPausedPos = device.calcPos(state);
     // sourceNodeを停止させる(ただし除去はしない)
     stopSafely(state);
     disconnectSafely(state.sourceNode);
@@ -426,11 +451,11 @@
   device.resume = function (state) {
     if (!state) { return; }
     if (!state.sourceNode) { return; }
-    if (state.playEndSec != null) { return; }
-    if (state.playPausePos == null) { return; } // pause状態ではなかった
-    state.replayStartSec = va5.getNowMsec() / 1000;
-    state.replayStartPos = state.playPausePos;
-    state.playPausePos = null;
+    if (state.playEndedTimestamp != null) { return; }
+    if (state.playPausedPos == null) { return; } // pause状態ではなかった
+    state.replayStartTimestamp = va5.getNowMsec() / 1000;
+    state.replayStartPos = state.playPausedPos;
+    state.playPausedPos = null;
     // nodesを再生成する(古いものは除去してよい)
     appendNodes(state, false);
   };
@@ -439,6 +464,17 @@
   // 効果音をon the flyに生成するのに必要となった
   device.getAudioContext = function () {
     return ac;
+  };
+
+
+  device.isFinished = function (state) {
+    return (state.playEndedTimestamp != null);
+  };
+
+
+  device.getPlayStartedTimestamp = function (state) {
+    if (!state) { return null; }
+    return state.playStartedTimestamp;
   };
 
 

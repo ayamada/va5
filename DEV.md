@@ -76,26 +76,82 @@ TODO
 
 
 
+- deviceのoptsのparse処理をUtilに移動させ、dumbとwebaudioで共通化する
 
-play系のoptsで取れるパラメータがどうにも分かりづらいので、もうちょっとなんとかしたい。具体的には、規定でないパラメータがあった場合は_logErrorを使って取れるパラメータの一覧を出すようにしたい
+- Bgmのconnect(merge)処理をUtilに移動させ、BgmとSeで共通化する
+
+
+
+
+Seが直に lastState.playingState.playStartSec を参照している。
+ここをカプセル化する事
+まずdevice側に対応関数を作る事
+名前は？
+そもそもこれは何を判定しているのかというと、chattering判定の為に
+「一定秒数前に起動された奴が存在しているかどうか」
+のチェックの為。それを踏まえた内容にすべき。
+
 
 
 
 ループパラメータ関連の修正
 以下の順で対応していく
 
+- TODO: まずdeviceの方のparamsがどうなるのか調べる事
+    - 調べた。ここ関連の現状のパラメータは以下になる
+        - isLoop
+            - これはBgm同様、endPos(playEnd)がnullかどうかの判定に含める？
+                - まずBgm側で、endPos(playEnd)がnullのまま渡してるかどうかを見る事。渡しているなら、この対応にできる
+        - loopStart
+            - これはこのままでok
+        - loopEnd
+            - これはこのままでok
+        - startPos
+            - playStartにrename
+        - endPos
+            - playEndにrename
+        - isSleepingStart
+            - これはこのままでok
+
+
+
+
+
 
 1. startPos endPos を playStartSec playEndSec にrename
+    - これはSeにもある、注意
 2. loopStart loopEnd を loopStartSec loopEndSec にrename
-3. playStart playEnd を実装(frame単位の方)
-4. loopStart loopEnd を実装(frame単位の方)
-5. loopLength loopLengthSec を実装
-6. pathからloopStart loopLengthを読み取る機能を実装
+    - これはSeにはない
+3. playStart playEnd playLength playLengthSec を実装(frame単位の方)
+    - 内部的にはsec単位で統一的に扱う
+    - これはSeにもある、注意
+5. loopStart loopEnd を実装(frame単位の方)
+    - これはSeにはない
+6. loopLength loopLengthSec を実装
+7. pathから loopStart loopEnd loopLength を読み取る機能を実装
+    - ついでに playStart playEnd playLength にも対応しておく(Seで使えるよう)
 
 
 
 
 
+- connect判定に、playStart/playEndあたりのパラメータも追加する。これは特にplayEndの有無が変化してloopするかしないかが変化した時にとても問題になる(ここが変化したら必ずdisconnectするようにしたい)
+
+
+- 非loopのBGMの再生時にバックグラウンドになり戻したら再生再開されない(終了状態になっている)。直す事
+
+
+
+play系のoptsで取れるパラメータがどうにも分かりづらいので、もうちょっとなんとかしたい。具体的には、規定でないパラメータがあった場合は_logErrorを使って取れるパラメータの一覧を出すようにしたい
+
+
+
+- configで「強制dumbモード」とか設定できるようにする
+    - これができたらdumbモードの動作確認を取る。_logDebug()が足りてないとdumbモードの動作確認ができないので、足りてない箇所に足していく
+
+
+
+ドキュメントに「playEndが指定されている場合、loopEnd系パラメータは無視されます」と明記しておく事
 
 上記以外にも、play系のopts、deviceのstate、bgmのstate、seのstate、これらのkeyの名前をより分かりやすいものに変更したい(少なくとも公開前には何とかしたい)
 

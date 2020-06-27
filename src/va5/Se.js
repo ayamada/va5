@@ -89,7 +89,7 @@
       var state = chToState[ch];
       if (!state) { continue; }
       if (!state.playingState) { continue; }
-      if (state.playingState.playEndSec) { stopImmediatelyByCh(ch); }
+      if (va5._device.isFinished(state.playingState)) { stopImmediatelyByCh(ch); }
     }
     // NB: stopImmediatelyByChによって、chToStateが全チェックされない
     //     ケースがありえる。しかしその場合でも次の周回でチェックされるので
@@ -225,9 +225,10 @@
       return lastCh;
     }
     if (!lastState.playingState) { return playSeTrue(path, opts); }
-    if (lastState.playingState.playEndSec) { return playSeTrue(path, opts); }
+    if (va5._device.isFinished(lastState.playingState)) { return playSeTrue(path, opts); }
     if (lastState.fading) { return playSeTrue(path, opts); }
-    var playStartSec = lastState.playingState.playStartSec;
+    // TODO: 秒数以外も見る必要あり(具体的にはstartPos系パラメータでも「違うSE」扱いにすべき)
+    var playStartSec = lastState.playingState.playStartedTimestamp;
     var now = va5.getNowMsec() / 1000;
     var diff = now - playStartSec;
     if (seChatteringSec < diff) { return playSeTrue(path, opts); }

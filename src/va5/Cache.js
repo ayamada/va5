@@ -217,4 +217,12 @@
   };
 
 
+  Cache.getSampleRate = function (path) {
+    if (path == null) { return null; }
+    var as = loadedAudioSourceTable[path];
+    if (!as) { return null; }
+    return va5._device.audioSourceToSampleRate(as);
+  };
+
+
 })(this);

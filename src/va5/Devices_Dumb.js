@@ -28,6 +28,11 @@
     if (as.disposed) { return null; }
     return 0;
   }
+  device.audioSourceToSampleRate = function (as) {
+    if (as == null) { return null; }
+    if (as.disposed) { return null; }
+    return 0;
+  }
 
 
   device.bufToAudioSource = function (buf) {
@@ -55,39 +60,43 @@
     if (!as) { return null; }
     if (as.disposed) { return null; }
 
+    var duration = 1;
+
+    // TODO: 以下のoptsのparse処理はWebAudioと共通化したい
+
     var volume = opts["volume"]; if (volume == null) { volume = 1; }
     volume = va5._validateNumber("volume", 0, volume, 10, 0);
     var pitch = va5._validateNumber("pitch", 0.1, opts["pitch"]||1, 10, 1);
-    var pan = va5._validateNumber("pan", -1, opts["pan"]||0, 1, 0);
-    var isLoop = !!opts["isLoop"];
+    var pan = va5._validateNumber("pan", -1, opts["pan"]||0, 1, 0)
     var loopStart = va5._validateNumber("loopStart", 0, opts["loopStart"]||0, null, 0);
-    var loopEnd = va5._validateNumber("loopEnd", null, opts["loopEnd"]||0, null, 0);
-    var startPos = va5._validateNumber("startPos", 0, opts["startPos"]||0, null, 0);
-    var endPos = opts["endPos"] || null;
-    if (endPos != null) { endPos = va5._validateNumber("endPos", null, endPos, null, 0); }
+    var loopEnd = va5._validateNumber("loopEnd", null, opts["loopEnd"]||duration, null, duration);
+    var startPos = opts["startPos"];
+    if (startPos == null) { startPos = loopStart; }
+    startPos = va5._validateNumber("startPos", 0, startPos, null, 0);
+    var endPos = opts["endPos"];
+    if (endPos != null) { endPos = va5._validateNumber("endPos", startPos, endPos, null, duration); }
     var isSleepingStart = !!opts["isSleepingStart"];
 
     var now = va5.getNowMsec() / 1000;
 
     // 何も再生できないので、いきなり再生終了状態にしておく
-    // (たとえisLoopが真だったとしても)
+    // (たとえendPosがnullのループ再生だったとしても)
     var state = {
       as: as,
       volume: volume,
       pitch: pitch,
       pan: pan,
-      isLoop: isLoop,
       loopStart: loopStart,
       loopEnd: loopEnd,
       startPos: startPos,
       endPos: endPos,
 
-      playStartSec: now,
-      playStartPos: startPos,
+      replayStartTimestamp: now,
+      replayStartPos: startPos,
+      playPaused: null,
 
-      playEndSec: now,
-
-      playPausePos: null
+      playStartedTimestamp: now,
+      playEndedTimestamp: now
     };
 
     return state;
@@ -123,6 +132,11 @@
 
   device.getAudioContext = function () {
     return null;
+  };
+
+
+  device.isFinished = function (state) {
+    return true;
   };
 
 
