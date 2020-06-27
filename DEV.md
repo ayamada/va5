@@ -76,9 +76,11 @@ TODO
 
 
 
-- deviceのoptsのparse処理をUtilに移動させ、dumbとwebaudioで共通化する
+- BgmとSeのoptsのparse処理の一部をUtilに移動させ、共通化できる部分は共通化したい
 
 - Bgmのconnect(merge)処理をUtilに移動させ、BgmとSeで共通化する
+    - Bgmでは、stateとnextStateが同じ時にconnectできる可能性が発生する
+    - Seでは、se-chattering-sec内だった時にconnectできる可能性が発生する
 
 
 

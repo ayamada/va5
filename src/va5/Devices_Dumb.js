@@ -61,43 +61,11 @@
     if (as.disposed) { return null; }
 
     var duration = 1;
-
-    // TODO: 以下のoptsのparse処理はWebAudioと共通化したい
-
-    var volume = opts["volume"]; if (volume == null) { volume = 1; }
-    volume = va5._validateNumber("volume", 0, volume, 10, 0);
-    var pitch = va5._validateNumber("pitch", 0.1, opts["pitch"]||1, 10, 1);
-    var pan = va5._validateNumber("pan", -1, opts["pan"]||0, 1, 0)
-    var loopStart = va5._validateNumber("loopStart", 0, opts["loopStart"]||0, null, 0);
-    var loopEnd = va5._validateNumber("loopEnd", null, opts["loopEnd"]||duration, null, duration);
-    var startPos = opts["startPos"];
-    if (startPos == null) { startPos = loopStart; }
-    startPos = va5._validateNumber("startPos", 0, startPos, null, 0);
-    var endPos = opts["endPos"];
-    if (endPos != null) { endPos = va5._validateNumber("endPos", startPos, endPos, null, duration); }
-    var isSleepingStart = !!opts["isSleepingStart"];
-
-    var now = va5.getNowMsec() / 1000;
-
+    var state = va5.Util.createDeviceState(as, opts, duration);
     // 何も再生できないので、いきなり再生終了状態にしておく
     // (たとえendPosがnullのループ再生だったとしても)
-    var state = {
-      as: as,
-      volume: volume,
-      pitch: pitch,
-      pan: pan,
-      loopStart: loopStart,
-      loopEnd: loopEnd,
-      startPos: startPos,
-      endPos: endPos,
-
-      replayStartTimestamp: now,
-      replayStartPos: startPos,
-      playPaused: null,
-
-      playStartedTimestamp: now,
-      playEndedTimestamp: now
-    };
+    state.playPausedPos = null;
+    state.playEndedTimestamp = state.playStartedTimestamp;
 
     return state;
   };

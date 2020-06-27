@@ -34,7 +34,7 @@
 
   appRoot.appendChild(document.createElement("br"));
 
-  appRoot.appendChild(makeButton("va5.playBgm('./cntr.m4a')", function (label) {
+  appRoot.appendChild(makeButton("va5.playBgm('./cntr2.m4a')", function (label) {
     eval(label);
   }));
 
@@ -63,7 +63,7 @@
 
   //var ch = null;
   //window.ppp = function () {
-  //  ch = va5.se("./cntr.m4a", {channel: ch});
+  //  ch = va5.se("./cntr2.m4a", {channel: ch});
   //};
 
   //window.sss = function () {

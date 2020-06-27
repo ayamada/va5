@@ -118,8 +118,12 @@
     var pan = va5._validateNumber("pan", -1, opts["pan"]||0, 1, 0);
     var isAlarm = !!opts["isAlarm"];
 
+    // TODO: この辺はBgm側と共通にしたい
+    // TODO: Bgm側の処理を参考に、loopStart等も取得する必要あり
     var startPos = va5._validateNumber("startPos", 0, opts["startPos"]||0, null, 0);
-    var endPos = opts["endPos"] || null;
+    // TODO: Seでは必ずendPosを設定する必要がある！
+    // TODO: Bgm側の処理を参考にする事
+    var endPos = opts["endPos"] || 0;
     if (endPos != null) { endPos = va5._validateNumber("endPos", 0, endPos, null, null); }
 
     var volumeTrue = volume * baseVolume;
@@ -168,7 +172,6 @@
         volume: state.volume * baseVolume,
         pitch: state.pitch,
         pan: state.pan,
-        isLoop: false,
         loopStart: null,
         loopEnd: null,
         startPos: state.startPos,
