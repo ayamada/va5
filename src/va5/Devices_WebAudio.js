@@ -423,4 +423,13 @@
   };
 
 
+  device.isInSeChatteringSec = function (state) {
+    var seChatteringSec = va5.config["se-chattering-sec"];
+    if (!seChatteringSec) { return false; }
+    var now = va5.getNowMsec() / 1000;
+    var diff = now - state.playStartedTimestamp;
+    return (diff < seChatteringSec);
+  };
+
+
 })(this);

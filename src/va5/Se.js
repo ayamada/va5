@@ -112,31 +112,25 @@
     ch = va5._validateSeCh(ch);
     if (ch == null) { return null; }
     stopImmediatelyByCh(ch);
-    var volume = opts["volume"]; if (volume == null) { volume = 1; }
-    volume = va5._validateNumber("volume", 0, volume, 10, 0);
-    var pitch = va5._validateNumber("pitch", 0.1, opts["pitch"]||1, 10, 1);
-    var pan = va5._validateNumber("pan", -1, opts["pan"]||0, 1, 0);
+
+    var c = va5.Util.parsePlayCommonOpts(path, opts);
+
+    // Seでは必ずendPosを設定する必要がある(非ループ指定)
+    if (c.endPos == null) { c.endPos = 0; }
+
     var isAlarm = !!opts["isAlarm"];
 
-    // TODO: この辺はBgm側と共通にしたい
-    // TODO: Bgm側の処理を参考に、loopStart等も取得する必要あり
-    var startPos = va5._validateNumber("startPos", 0, opts["startPos"]||0, null, 0);
-    // TODO: Seでは必ずendPosを設定する必要がある！
-    // TODO: Bgm側の処理を参考にする事
-    var endPos = opts["endPos"] || 0;
-    if (endPos != null) { endPos = va5._validateNumber("endPos", 0, endPos, null, null); }
-
-    var volumeTrue = volume * baseVolume;
+    var volumeTrue = c.volume * baseVolume;
 
     var state = {
       path: path,
-      volume: volume,
-      pitch: pitch,
-      pan: pan,
+      volume: c.volume,
+      pitch: c.pitch,
+      pan: c.pan,
       isAlarm: isAlarm,
 
-      startPos: startPos,
-      endPos: endPos,
+      startPos: c.startPos,
+      endPos: c.endPos,
 
       volumeTrue: volumeTrue,
 
@@ -160,7 +154,7 @@
       }
       state.as = as;
       // ロード完了時にバックグラウンド状態なら、即座に終了させる
-      if (va5.Bgm.isInBackground() && va5.config["is-pause-on-background"]) {
+      if (va5.Bgm.isInBackground() && va5.config["is-pause-on-background"] && !state.isAlarm) {
         state.cancelled = true;
         stopImmediatelyByCh(ch);
         return;
@@ -175,7 +169,7 @@
         loopStart: null,
         loopEnd: null,
         startPos: state.startPos,
-        endPos: state.endPos
+        endPos: va5.Util.calcActualEndPos(state)
       };
       va5._logDebug("loaded. play se " + path + " : " + ch);
       state.playingState = va5._device.play(as, deviceOpts);
@@ -191,19 +185,18 @@
   }
 
   function mergeState (state, opts) {
-    var volume = opts["volume"]; if (volume == null) { volume = 1; }
-    volume = va5._validateNumber("volume", 0, volume, 10, 0);
-    var pitch = va5._validateNumber("pitch", 0.1, opts["pitch"]||1, 10, 1);
-    var pan = va5._validateNumber("pan", -1, opts["pan"]||0, 1, 0);
     var prevVolume = state.volume;
     var prevPitch = state.pitch;
     var prevPan = state.pan;
+
+    var c = va5.Util.parsePlayCommonOpts(state.path, opts);
+
     // 合成後の音量は基本的に大きくなる。しかし普通に加算すると
     // すぐに音割れ状態になってしまうので増幅量は小さ目にしておく
-    var newVolume = Math.max(prevVolume, volume) + 0.1 * Math.min(prevVolume, volume);
+    var newVolume = Math.max(prevVolume, c.volume) + 0.1 * Math.min(prevVolume, c.volume);
     newVolume = Math.min(newVolume, 1.1); // キャップ値の設定はかなり悩む
-    var newPitch = (prevPitch + pitch) / 2; // これは調整の余地あり…
-    var newPan = (prevPan + pan) / 2;
+    var newPitch = (prevPitch + c.pitch) / 2; // これは調整の余地あり…
+    var newPan = (prevPan + c.pan) / 2;
     state.volume = newVolume;
     state.pitch = newPitch;
     state.pan = newPan;
@@ -222,7 +215,8 @@
     var lastState = chToState[lastCh];
     if (!lastState) { return playSeTrue(path, opts); }
     if (lastState.loading) {
-      // loading時のみ特殊mergeが必要
+      // loading時のみ、seChatteringSec判定を飛ばして、特殊mergeが必要
+      // (再生前なのでseChatteringSec=0でない限り常に判定される)
       mergeState(lastState, opts);
       va5._logDebug("se-chattering-sec detected. merging parameters for " + path);
       return lastCh;
@@ -230,12 +224,8 @@
     if (!lastState.playingState) { return playSeTrue(path, opts); }
     if (va5._device.isFinished(lastState.playingState)) { return playSeTrue(path, opts); }
     if (lastState.fading) { return playSeTrue(path, opts); }
-    // TODO: 秒数以外も見る必要あり(具体的にはstartPos系パラメータでも「違うSE」扱いにすべき)
-    var playStartSec = lastState.playingState.playStartedTimestamp;
-    var now = va5.getNowMsec() / 1000;
-    var diff = now - playStartSec;
-    if (seChatteringSec < diff) { return playSeTrue(path, opts); }
-    // se-chattering-secを適用する
+    if (!va5._device.isInSeChatteringSec(lastState.playingState)) { return playSeTrue(path, opts); }
+    // chatterしていた。mergeを行う
     mergeState(lastState, opts);
     var volumeTrue = lastState.volume * baseVolume;
     va5._device.setVolume(lastState.playingState, volumeTrue);

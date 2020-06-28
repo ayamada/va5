@@ -137,24 +137,14 @@
   function makeInitialState (isVoice, path, opts) {
     opts = opts || {};
 
-    var volume = opts["volume"];
-    if (volume == null) { volume = 1; }
-    volume = va5._validateNumber("volume", 0, volume, 10, 0);
-    var pitch = va5._validateNumber("pitch", 0.1, opts["pitch"]||1, 10, 1);
-    var pan = va5._validateNumber("pan", -1, opts["pan"]||0, 1, 0);
+    var c = va5.Util.parsePlayCommonOpts(path, opts);
 
-    var loopStart = va5._validateNumber("loopStart", 0, opts["loopStart"]||0, null, 0);
-    var loopEnd = opts["loopEnd"] || null;
-    if (loopEnd != null) { loopEnd = va5._validateNumber("loopEnd", 0, loopEnd, null, null); }
-
-
-    var startPos = va5._validateNumber("startPos", 0, opts["startPos"]||loopStart, null, loopStart);
-    var endPos = opts["endPos"];
-    if (endPos != null) { endPos = va5._validateNumber("endPos", null, endPos, null, null); }
-    if (isVoice && !endPos) { endPos = 0; } // voiceは常に非ループ。これが問題になるならvoiceではなくbgm扱いで再生すべき
+    // voiceは常に非ループなので、もしnullなら0にする。
+    // これが問題になるならvoiceではなくbgm扱いで再生すべき。
+    if (isVoice && !c.endPos) { c.endPos = 0; }
 
     // fadeを適用する前の再生音量
-    var volumeTrue = volume * (isVoice ? baseVolumeVoice : baseVolume);
+    var volumeTrue = c.volume * (isVoice ? baseVolumeVoice : baseVolume);
 
     var transitionMode = va5._validateEnum("transitionMode", opts["transitionMode"]||"connectIfSame", ["connectNever", "connectIfSame", "connectIfPossible"], "connectIfSame");
     var fadeinSec = va5._validateNumber("fadeinSec", 0, opts["fadeinSec"]||0, null, 0);
@@ -165,21 +155,21 @@
 
     var sleepPos = null;
     if (va5.config["is-pause-on-background"] && isBackgroundNow) {
-      sleepPos = startPos;
+      sleepPos = c.startPos;
     }
 
     var state = {
       path: path,
 
-      volume: volume,
-      pitch: pitch,
-      pan: pan,
+      volume: c.volume,
+      pitch: c.pitch,
+      pan: c.pan,
 
-      loopStart: loopStart,
-      loopEnd: loopEnd,
+      loopStart: c.loopStart,
+      loopEnd: c.loopEnd,
 
-      startPos: startPos,
-      endPos: endPos,
+      startPos: c.startPos,
+      endPos: c.endPos,
 
       volumeTrue: volumeTrue,
 
@@ -242,18 +232,6 @@
       // NB: ローディング中にmergeによってパラメータが
       //     変化している場合がある。なので元の値を参照せずに、
       //     stateから参照し直す必要がある
-      var endPosTrue = state.endPos;
-      if ((endPosTrue != null) && (endPosTrue <= 0)) {
-        var duration = va5._device.audioSourceToDuration(as);
-        if (0 < duration) {
-          endPosTrue = (endPosTrue % duration) + duration;
-        }
-        else {
-          //va5._logError("invalid duration found " + state.path + " : " + pch);
-          // deviceがdumbの時にこっちに来る。適当なダミー値をセットする
-          endPosTrue = 1;
-        }
-      }
       var deviceOpts = {
         volume: state.volumeTrue * state.fadeVolume,
         pitch: state.pitch,
@@ -261,7 +239,7 @@
         loopStart: state.loopStart,
         loopEnd: state.loopEnd,
         startPos: state.startPos,
-        endPos: endPosTrue,
+        endPos: va5.Util.calcActualEndPos(state),
         isSleepingStart: (state.sleepPos != null)
       };
       va5._logDebug("loaded. play bgm or voice " + state.path + " : " + pch);

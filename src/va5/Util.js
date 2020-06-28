@@ -117,4 +117,54 @@
     };
     return state;
   };
+
+
+  // endPosが0やマイナスの時は、duration側から動かした値にする必要がある。
+  // それを計算する関数
+  // NB: これは本来Bgm/Se内に含めるべき内容だが、
+  //     共通にしたいので、ここに置いている
+  Util.calcActualEndPos = function (state) {
+    var endPosTrue = state.endPos;
+    if ((endPosTrue != null) && (endPosTrue <= 0)) {
+      var duration = va5._device.audioSourceToDuration(state.as);
+      if (0 < duration) {
+        endPosTrue = (endPosTrue % duration) + duration;
+      }
+      else {
+        //va5._logError("invalid duration found " + state.path);
+        // deviceがdumbの時にこっちに来る。適当なダミー値をセットする
+        endPosTrue = 1;
+      }
+    }
+    return endPosTrue;
+  };
+
+
+  // NB: これは本来Bgm/Se内に含めるべき内容だが、
+  //     共通にしたいので、ここに置いている
+  Util.parsePlayCommonOpts = function (path, opts) {
+    var r = {};
+
+    r.volume = opts["volume"];
+    if (r.volume == null) { r.volume = 1; }
+    r.volume = va5._validateNumber("volume", 0, r.volume, 10, 0);
+    r.pitch = va5._validateNumber("pitch", 0.1, opts["pitch"]||1, 10, 1);
+    r.pan = va5._validateNumber("pan", -1, opts["pan"]||0, 1, 0);
+
+    // TODO: この辺りはpathからも読み取る(optsにあるならそちらを優先)
+
+    r.loopStart = va5._validateNumber("loopStart", 0, opts["loopStart"]||0, null, 0);
+    r.loopEnd = opts["loopEnd"] || null;
+    if (r.loopEnd != null) { r.loopEnd = va5._validateNumber("loopEnd", 0, r.loopEnd, null, null); }
+
+    r.startPos = opts["startPos"];
+    if (r.startPos == null) { r.startPos = r.loopStart; }
+    r.startPos = va5._validateNumber("startPos", 0, r.startPos, null, r.loopStart);
+    r.endPos = opts["endPos"];
+    if (r.endPos != null) { r.endPos = va5._validateNumber("endPos", null, r.endPos, null, null); }
+
+    return r;
+  };
+
+
 })(this);

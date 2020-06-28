@@ -93,10 +93,9 @@
   };
 
   // BGMのバックグラウンド一時停止用。それ以外の用途には使わない事(衝突する為)
-  device.sleep = function (state) {
-  };
-  device.resume = function (state) {
-  };
+  device.sleep = function (state) {};
+  device.resume = function (state) {};
+
 
   device.getAudioContext = function () {
     return null;
@@ -105,6 +104,17 @@
 
   device.isFinished = function (state) {
     return true;
+  };
+
+
+  device.getPlayStartedTimestamp = function (state) {
+    if (!state) { return null; }
+    return state.playStartedTimestamp;
+  };
+
+
+  device.isInSeChatteringSec = function (state) {
+    return false;
   };
 
 

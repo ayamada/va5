@@ -76,6 +76,7 @@ TODO
 
 
 
+
 - BgmとSeのoptsのparse処理の一部をUtilに移動させ、共通化できる部分は共通化したい
 
 - Bgmのconnect(merge)処理をUtilに移動させ、BgmとSeで共通化する
@@ -84,14 +85,6 @@ TODO
 
 
 
-
-Seが直に lastState.playingState.playStartSec を参照している。
-ここをカプセル化する事
-まずdevice側に対応関数を作る事
-名前は？
-そもそもこれは何を判定しているのかというと、chattering判定の為に
-「一定秒数前に起動された奴が存在しているかどうか」
-のチェックの為。それを踏まえた内容にすべき。
 
 
 
