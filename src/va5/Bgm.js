@@ -229,9 +229,8 @@
         return;
       }
       state.as = as;
-      // NB: ローディング中にmergeによってパラメータが
-      //     変化している場合がある。なので元の値を参照せずに、
-      //     stateから参照し直す必要がある
+      // NB: ローディング中にパラメータが変化している場合がある。
+      //     なので元の値を参照せずに、stateから参照し直す必要がある
       var deviceOpts = {
         volume: state.volumeTrue * state.fadeVolume,
         pitch: state.pitch,
@@ -248,8 +247,9 @@
   }
 
   function canConnect (transitionMode, state1, state2) {
-    transitionMode = va5._assertEnum("transitionMode", transitionMode, ["connectNever", "connectIfSame", "connectIfPossible"]);
     if (state1.path != state2.path) { return false; }
+    // TODO: 他にも判定すべきパラメータあり！Seのmergeと同じような判定が必要
+    transitionMode = va5._assertEnum("transitionMode", transitionMode, ["connectNever", "connectIfSame", "connectIfPossible"]);
     if (transitionMode == "connectNever") { return false; }
     if (transitionMode == "connectIfPossible") { return true; }
     return ((state1.pitch == state2.pitch) && (state1.pan == state2.pan));

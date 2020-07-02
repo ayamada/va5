@@ -106,17 +106,10 @@
     return ch;
   }
 
-  function playSeTrue (path, opts) {
-    opts = opts || {};
-    var ch = opts["channel"] || makeNewChannelId();
-    ch = va5._validateSeCh(ch);
+  function playSeTrue (path, opts, c, ch) {
     if (ch == null) { return null; }
+
     stopImmediatelyByCh(ch);
-
-    var c = va5.Util.parsePlayCommonOpts(path, opts);
-
-    // Seでは必ずendPosを設定する必要がある(非ループ指定)
-    if (c.endPos == null) { c.endPos = 0; }
 
     var isAlarm = !!opts["isAlarm"];
 
@@ -184,12 +177,10 @@
     return ch;
   }
 
-  function mergeState (state, opts) {
+  function mergeState (state, c) {
     var prevVolume = state.volume;
     var prevPitch = state.pitch;
     var prevPan = state.pan;
-
-    var c = va5.Util.parsePlayCommonOpts(state.path, opts);
 
     // 合成後の音量は基本的に大きくなる。しかし普通に加算すると
     // すぐに音割れ状態になってしまうので増幅量は小さ目にしておく
@@ -200,33 +191,49 @@
     state.volume = newVolume;
     state.pitch = newPitch;
     state.pan = newPan;
+    // startPos/endPosのmergeも必要！
+    // (通常mergeでは不要だがload前mergeの時に必要になる)
+    state.startPos = c.startPos;
+    state.endPos = c.endPos;
   }
 
   Se.playSe = function (path, opts) {
     if (path == null) { return null; }
     path = va5._validatePath(path);
     if (path == null) { return null; }
+
+    opts = opts || {};
+    var ch = va5._validateSeCh(opts["channel"] || makeNewChannelId());
+    var c = va5.Util.parsePlayCommonOpts(path, opts);
+    // Seでは必ずendPosを設定する必要がある(非ループ指定)
+    if (c.endPos == null) { c.endPos = 0; }
+
     var seChatteringSec = va5.config["se-chattering-sec"];
-    if (!seChatteringSec) { return playSeTrue(path, opts); }
+    if (!seChatteringSec) { return playSeTrue(path, opts, c, ch); }
     var chs = pathToChs[path];
-    if (!chs) { return playSeTrue(path, opts); }
+    if (!chs) { return playSeTrue(path, opts, c, ch); }
     var lastCh = chs.slice(-1)[0];
-    if (!lastCh) { return playSeTrue(path, opts); }
+    if (!lastCh) { return playSeTrue(path, opts, c, ch); }
     var lastState = chToState[lastCh];
-    if (!lastState) { return playSeTrue(path, opts); }
+    if (!lastState) { return playSeTrue(path, opts, c, ch); }
     if (lastState.loading) {
       // loading時のみ、seChatteringSec判定を飛ばして、特殊mergeが必要
       // (再生前なのでseChatteringSec=0でない限り常に判定される)
-      mergeState(lastState, opts);
+      mergeState(lastState, c);
       va5._logDebug("se-chattering-sec detected. merging parameters for " + path);
       return lastCh;
     }
-    if (!lastState.playingState) { return playSeTrue(path, opts); }
-    if (va5._device.isFinished(lastState.playingState)) { return playSeTrue(path, opts); }
-    if (lastState.fading) { return playSeTrue(path, opts); }
-    if (!va5._device.isInSeChatteringSec(lastState.playingState)) { return playSeTrue(path, opts); }
+    if (!lastState.playingState) { return playSeTrue(path, opts, c, ch); }
+    if (va5._device.isFinished(lastState.playingState)) { return playSeTrue(path, opts, c, ch); }
+    if (lastState.fading) { return playSeTrue(path, opts, c, ch); }
+    //console.log("startPos", lastState.startPos, c.startPos); // for debug
+    //console.log("endPos", lastState.endPos, c.endPos); // for debug
+    if (lastState.startPos != c.startPos) { return playSeTrue(path, opts, c, ch); }
+    if (lastState.endPos != c.endPos) { return playSeTrue(path, opts, c, ch); }
+    //console.log("startPos and endPos are same, continue to check chattering"); // for debug
+    if (!va5._device.isInSeChatteringSec(lastState.playingState)) { return playSeTrue(path, opts, c, ch); }
     // chatterしていた。mergeを行う
-    mergeState(lastState, opts);
+    mergeState(lastState, c);
     var volumeTrue = lastState.volume * baseVolume;
     va5._device.setVolume(lastState.playingState, volumeTrue);
     va5._device.setPitch(lastState.playingState, lastState.pitch);

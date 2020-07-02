@@ -77,11 +77,11 @@ TODO
 
 
 
-- BgmとSeのoptsのparse処理の一部をUtilに移動させ、共通化できる部分は共通化したい
+- Bgm.canConnect をUtilへ移動
+    - これはSeでも使うので
+    - Bgmでは、stateとnextStateが同じ時にconnectできるかの判定が必要となる
+    - Seでは、se-chattering-sec内だった時にconnectできるかの判定が必要となる
 
-- Bgmのconnect(merge)処理をUtilに移動させ、BgmとSeで共通化する
-    - Bgmでは、stateとnextStateが同じ時にconnectできる可能性が発生する
-    - Seでは、se-chattering-sec内だった時にconnectできる可能性が発生する
 
 
 
@@ -112,7 +112,6 @@ TODO
 
 
 
-
 1. startPos endPos を playStartSec playEndSec にrename
     - これはSeにもある、注意
 2. loopStart loopEnd を loopStartSec loopEndSec にrename
@@ -125,6 +124,9 @@ TODO
 6. loopLength loopLengthSec を実装
 7. pathから loopStart loopEnd loopLength を読み取る機能を実装
     - ついでに playStart playEnd playLength にも対応しておく(Seで使えるよう)
+        - キー名はそれぞれ LS LE LL PS PE PL とする
+        - foo.m4a を foo__LS0LE123456PS0PE123456.m4a のようにrenameする。
+    - Util.parsePlayCommonOpts 内に処理を入れればok
 
 
 
@@ -147,6 +149,7 @@ play系のoptsで取れるパラメータがどうにも分かりづらいので
 
 
 ドキュメントに「playEndが指定されている場合、loopEnd系パラメータは無視されます」と明記しておく事
+ドキュメントに「se-chattering-secは動的に変更するのには向いていません」と明記しておく事
 
 上記以外にも、play系のopts、deviceのstate、bgmのstate、seのstate、これらのkeyの名前をより分かりやすいものに変更したい(少なくとも公開前には何とかしたい)
 
