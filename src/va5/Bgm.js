@@ -246,15 +246,6 @@
     });
   }
 
-  function canConnect (transitionMode, state1, state2) {
-    if (state1.path != state2.path) { return false; }
-    // TODO: 他にも判定すべきパラメータあり！Seのmergeと同じような判定が必要
-    transitionMode = va5._assertEnum("transitionMode", transitionMode, ["connectNever", "connectIfSame", "connectIfPossible"]);
-    if (transitionMode == "connectNever") { return false; }
-    if (transitionMode == "connectIfPossible") { return true; }
-    return ((state1.pitch == state2.pitch) && (state1.pan == state2.pan));
-  }
-
   function playCommon (isVoice, path, opts) {
     opts = opts || {};
     var ch = opts["channel"];
@@ -326,7 +317,7 @@
 
     var defaultBgmFadeSec = va5.config["default-bgm-fade-sec"];
 
-    if (canConnect(newState.transitionMode, newState, oldState)) {
+    if (va5.Util.canConnect(newState.transitionMode, newState, oldState)) {
       // connectを行う。具体的には、即座に、volume, pitch, panの3パラメータの
       // 適用をoldStateに行う。そしてnewStateは処分する。
       // また、もしフェード途中にある場合はフェードイン復帰させる

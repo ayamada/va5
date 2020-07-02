@@ -191,11 +191,12 @@
     state.volume = newVolume;
     state.pitch = newPitch;
     state.pan = newPan;
-    // startPos/endPosのmergeも必要！
-    // (通常mergeでは不要だがload前mergeの時に必要になる)
+    // NB: startPos/endPosのmergeも必要！
+    //     (通常mergeでは不要なのだがload前mergeの時にだけ必要になる)
     state.startPos = c.startPos;
     state.endPos = c.endPos;
   }
+
 
   Se.playSe = function (path, opts) {
     if (path == null) { return null; }
@@ -226,11 +227,8 @@
     if (!lastState.playingState) { return playSeTrue(path, opts, c, ch); }
     if (va5._device.isFinished(lastState.playingState)) { return playSeTrue(path, opts, c, ch); }
     if (lastState.fading) { return playSeTrue(path, opts, c, ch); }
-    //console.log("startPos", lastState.startPos, c.startPos); // for debug
-    //console.log("endPos", lastState.endPos, c.endPos); // for debug
-    if (lastState.startPos != c.startPos) { return playSeTrue(path, opts, c, ch); }
-    if (lastState.endPos != c.endPos) { return playSeTrue(path, opts, c, ch); }
-    //console.log("startPos and endPos are same, continue to check chattering"); // for debug
+    c.path = path;
+    if (va5.Util.canConnect("connectIfSame", lastState, c, true)) { return playSeTrue(path, opts, c, ch); }
     if (!va5._device.isInSeChatteringSec(lastState.playingState)) { return playSeTrue(path, opts, c, ch); }
     // chatterしていた。mergeを行う
     mergeState(lastState, c);

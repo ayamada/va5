@@ -167,4 +167,26 @@
   };
 
 
+  // NB: これは本来Bgm/Se内に含めるべき内容だが、
+  //     共通にしたいので、ここに置いている
+  Util.canConnect = function (transitionMode, state1, state2, isSkipLoop) {
+    // isSkipLoopはSe用のスイッチ。
+    // これが真ならSe用と判断しloop系パラメータのチェックはパスする
+    transitionMode = va5._assertEnum("transitionMode", transitionMode, ["connectNever", "connectIfSame", "connectIfPossible"]);
+    if (transitionMode == "connectNever") { return false; }
+    // NB: ここからconnectIfPossibleの判定。指定パラメータ全てが同一なら真
+    if (state1.path != state2.path) { return false; }
+    if (state1.startPos != state2.startPos) { return false; }
+    if (state1.endPos != state2.endPos) { return false; }
+    if (!isSkipLoop && (state1.loopStart != state2.loopStart)) { return false; }
+    if (!isSkipLoop && (state1.loopEnd != state2.loopEnd)) { return false; }
+    if (transitionMode == "connectIfPossible") { return true; }
+    // NB: ここからconnectIfSameの判定。追加の指定パラメータ全ても同一なら真
+    if (state1.pitch != state2.pitch) { return false; }
+    if (state1.pan != state2.pan) { return false; }
+    // NB: volumeはconnectによる自動調整の対象なので同一チェックをしなくてよい
+    return true;
+  };
+
+
 })(this);

@@ -77,26 +77,11 @@ TODO
 
 
 
-- Bgm.canConnect をUtilへ移動
-    - これはSeでも使うので
-    - Bgmでは、stateとnextStateが同じ時にconnectできるかの判定が必要となる
-    - Seでは、se-chattering-sec内だった時にconnectできるかの判定が必要となる
-
-
-
-
-
-
-
-
 ループパラメータ関連の修正
 以下の順で対応していく
 
 - TODO: まずdeviceの方のparamsがどうなるのか調べる事
     - 調べた。ここ関連の現状のパラメータは以下になる
-        - isLoop
-            - これはBgm同様、endPos(playEnd)がnullかどうかの判定に含める？
-                - まずBgm側で、endPos(playEnd)がnullのまま渡してるかどうかを見る事。渡しているなら、この対応にできる
         - loopStart
             - これはこのままでok
         - loopEnd
@@ -109,6 +94,9 @@ TODO
             - これはこのままでok
 
 
+0. まずdevice内のstartPos/endPosをplayStartSec/playEndSecにrenameする
+    - Secをつけるかは悩んだが、勘違いしないようにつける事にした
+    - これに伴い、BgmとSe内のdevice.play引数も忘れずに変更する事
 
 
 
