@@ -58,27 +58,27 @@
     volume = va5._validateNumber("volume", 0, volume, 10, 0);
     var pitch = va5._validateNumber("pitch", 0.1, opts["pitch"]||1, 10, 1);
     var pan = va5._validateNumber("pan", -1, opts["pan"]||0, 1, 0)
-    // NB: loopStart=nullの時はloopStart=0とする
-    var loopStart = va5._validateNumber("loopStart", 0, opts["loopStart"]||0, null, 0);
-    // NB: loopEnd=nullの時はloopEnd=durationとする
-    var loopEnd = va5._validateNumber("loopEnd", null, opts["loopEnd"]||duration, null, duration);
-    // NB: startPos=nullの時はstartPos=loopStartとする
-    var startPos = opts["startPos"];
-    if (startPos == null) { startPos = loopStart; }
-    startPos = va5._validateNumber("startPos", 0, startPos, null, 0);
-    // NB: endPos=nullの時はendPos=nullを維持する
-    var endPos = opts["endPos"];
-    if (endPos != null) { endPos = va5._validateNumber("endPos", startPos, endPos, null, duration); }
+    // NB: loopStartSec=nullの時はloopStartSec=0とする
+    var loopStartSec = va5._validateNumber("loopStartSec", 0, opts["loopStartSec"]||0, null, 0);
+    // NB: loopEndSec=nullの時はloopEndSec=durationとする
+    var loopEndSec = va5._validateNumber("loopEndSec", null, opts["loopEndSec"]||duration, null, duration);
+    // NB: playStartSec=nullの時はplayStartSec=loopStartSecとする
+    var playStartSec = opts["playStartSec"];
+    if (playStartSec == null) { playStartSec = loopStartSec; }
+    playStartSec = va5._validateNumber("playStartSec", 0, playStartSec, null, 0);
+    // NB: playEndSec=nullの時はplayEndSec=nullを維持する
+    var playEndSec = opts["playEndSec"];
+    if (playEndSec != null) { playEndSec = va5._validateNumber("playEndSec", playStartSec, playEndSec, null, duration); }
     var isSleepingStart = !!opts["isSleepingStart"];
 
-    var isNeedFinishImmediately = (endPos != null) && (endPos < startPos);
+    var isNeedFinishImmediately = (playEndSec != null) && (playEndSec < playStartSec);
     // すぐ終わらせるので、強制的にisSleepingStartと同様の処理を行わせる
     if (isNeedFinishImmediately) { isSleepingStart = true; }
 
-    if ((endPos == null) && (loopEnd <= loopStart)) {
-      va5._logError(["found confused loopStart and loopEnd", loopStart, loopEnd]);
-      loopStart = 0;
-      loopEnd = duration;
+    if ((playEndSec == null) && (loopEndSec <= loopStartSec)) {
+      va5._logError(["found confused loop parameters", {loopStartSec: loopStartSec, loopEndSec: loopEndSec}]);
+      loopStartSec = 0;
+      loopEndSec = duration;
     }
 
     var now = va5.getNowMsec() / 1000;
@@ -88,10 +88,10 @@
       volume: volume,
       pitch: pitch,
       pan: pan,
-      loopStart: loopStart,
-      loopEnd: loopEnd,
-      startPos: startPos,
-      endPos: endPos,
+      loopStartSec: loopStartSec,
+      loopEndSec: loopEndSec,
+      playStartSec: playStartSec,
+      playEndSec: playEndSec,
 
       // ここは直後のappendNodesで設定される
       sourceNode: null,
@@ -103,8 +103,8 @@
       // sleep/resumeおよびsetPitchによって変化する。
       // 上記以外の用途には使わない事！
       replayStartTimestamp: now,
-      replayStartPos: startPos,
-      playPausedPos: isSleepingStart ? startPos : null,
+      replayStartPos: playStartSec,
+      playPausedPos: isSleepingStart ? playStartSec : null,
 
       // これはse-chattering-secの判定で必要な「いつ開始したか」の情報
       playStartedTimestamp: now,
@@ -119,24 +119,24 @@
   };
 
 
-  // endPosが0やマイナスの時は、duration側から動かした値にする必要がある。
+  // playEndSecが0やマイナスの時は、duration側から動かした値にする必要がある。
   // それを計算する関数
   // NB: これは本来Bgm/Se内に含めるべき内容だが、
   //     共通にしたいので、ここに置いている
-  Util.calcActualEndPos = function (state) {
-    var endPosTrue = state.endPos;
-    if ((endPosTrue != null) && (endPosTrue <= 0)) {
+  Util.calcActualPlayEndSec = function (state) {
+    var playEndSecTrue = state.playEndSec;
+    if ((playEndSecTrue != null) && (playEndSecTrue <= 0)) {
       var duration = va5._device.audioSourceToDuration(state.as);
       if (0 < duration) {
-        endPosTrue = (endPosTrue % duration) + duration;
+        playEndSecTrue = (playEndSecTrue % duration) + duration;
       }
       else {
         //va5._logError("invalid duration found " + state.path);
         // deviceがdumbの時にこっちに来る。適当なダミー値をセットする
-        endPosTrue = 1;
+        playEndSecTrue = 1;
       }
     }
-    return endPosTrue;
+    return playEndSecTrue;
   };
 
 
@@ -153,15 +153,15 @@
 
     // TODO: この辺りはpathからも読み取る(optsにあるならそちらを優先)
 
-    r.loopStart = va5._validateNumber("loopStart", 0, opts["loopStart"]||0, null, 0);
-    r.loopEnd = opts["loopEnd"] || null;
-    if (r.loopEnd != null) { r.loopEnd = va5._validateNumber("loopEnd", 0, r.loopEnd, null, null); }
+    r.loopStartSec = va5._validateNumber("loopStartSec", 0, opts["loopStartSec"]||0, null, 0);
+    r.loopEndSec = opts["loopEndSec"] || null;
+    if (r.loopEndSec != null) { r.loopEndSec = va5._validateNumber("loopEndSec", 0, r.loopEndSec, null, null); }
 
-    r.startPos = opts["startPos"];
-    if (r.startPos == null) { r.startPos = r.loopStart; }
-    r.startPos = va5._validateNumber("startPos", 0, r.startPos, null, r.loopStart);
-    r.endPos = opts["endPos"];
-    if (r.endPos != null) { r.endPos = va5._validateNumber("endPos", null, r.endPos, null, null); }
+    r.playStartSec = opts["playStartSec"];
+    if (r.playStartSec == null) { r.playStartSec = r.loopStartSec; }
+    r.playStartSec = va5._validateNumber("playStartSec", 0, r.playStartSec, null, r.loopStartSec);
+    r.playEndSec = opts["playEndSec"];
+    if (r.playEndSec != null) { r.playEndSec = va5._validateNumber("playEndSec", null, r.playEndSec, null, null); }
 
     return r;
   };
@@ -176,10 +176,10 @@
     if (transitionMode == "connectNever") { return false; }
     // NB: ここからconnectIfPossibleの判定。指定パラメータ全てが同一なら真
     if (state1.path != state2.path) { return false; }
-    if (state1.startPos != state2.startPos) { return false; }
-    if (state1.endPos != state2.endPos) { return false; }
-    if (!isSkipLoop && (state1.loopStart != state2.loopStart)) { return false; }
-    if (!isSkipLoop && (state1.loopEnd != state2.loopEnd)) { return false; }
+    if (state1.playStartSec != state2.playStartSec) { return false; }
+    if (state1.playEndSec != state2.playEndSec) { return false; }
+    if (!isSkipLoop && (state1.loopStartSec != state2.loopStartSec)) { return false; }
+    if (!isSkipLoop && (state1.loopEndSec != state2.loopEndSec)) { return false; }
     if (transitionMode == "connectIfPossible") { return true; }
     // NB: ここからconnectIfSameの判定。追加の指定パラメータ全ても同一なら真
     if (state1.pitch != state2.pitch) { return false; }

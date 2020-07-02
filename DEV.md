@@ -77,57 +77,44 @@ TODO
 
 
 
+- 非loopのBGMの再生時にバックグラウンドになり戻したら再生再開されない(終了状態になっている)。直す事
+
+
+
+
 ループパラメータ関連の修正
 以下の順で対応していく
 
-- TODO: まずdeviceの方のparamsがどうなるのか調べる事
-    - 調べた。ここ関連の現状のパラメータは以下になる
-        - loopStart
-            - これはこのままでok
-        - loopEnd
-            - これはこのままでok
-        - startPos
-            - playStartにrename
-        - endPos
-            - playEndにrename
-        - isSleepingStart
-            - これはこのままでok
-
-
-0. まずdevice内のstartPos/endPosをplayStartSec/playEndSecにrenameする
-    - Secをつけるかは悩んだが、勘違いしないようにつける事にした
-    - これに伴い、BgmとSe内のdevice.play引数も忘れずに変更する事
-
-
-
-1. startPos endPos を playStartSec playEndSec にrename
-    - これはSeにもある、注意
-2. loopStart loopEnd を loopStartSec loopEndSec にrename
-    - これはSeにはない
-3. playStart playEnd playLength playLengthSec を実装(frame単位の方)
+1. playStart playEnd を実装(secではないframe単位の奴)
     - 内部的にはsec単位で統一的に扱う
+        - frameからsecの変換にはsampleRateの取得が必要。以下のどちらかで取れる
+            - va5.getSampleRate(path)
+            - va5._device.audioSourceToSampleRate(as)
     - これはSeにもある、注意
-5. loopStart loopEnd を実装(frame単位の方)
-    - これはSeにはない
+3. playLength playLengthSec を実装
+    - 内部的にはplayEndSecに変換し統一的に扱う
+5. loopStart loopEnd を実装(secではないframe単位の奴)
+    - これはSeにはない筈だが一応確認
 6. loopLength loopLengthSec を実装
+    - 内部的にはloopEndSecに変換し統一的に扱う
 7. pathから loopStart loopEnd loopLength を読み取る機能を実装
     - ついでに playStart playEnd playLength にも対応しておく(Seで使えるよう)
         - キー名はそれぞれ LS LE LL PS PE PL とする
         - foo.m4a を foo__LS0LE123456PS0PE123456.m4a のようにrenameする。
+            - foo__LS0_LE123456_PS0_PE123456.m4a のように区切ってもokとする
     - Util.parsePlayCommonOpts 内に処理を入れればok
 
 
 
 
 
-- connect判定に、playStart/playEndあたりのパラメータも追加する。これは特にplayEndの有無が変化してloopするかしないかが変化した時にとても問題になる(ここが変化したら必ずdisconnectするようにしたい)
-
-
-- 非loopのBGMの再生時にバックグラウンドになり戻したら再生再開されない(終了状態になっている)。直す事
 
 
 
-play系のoptsで取れるパラメータがどうにも分かりづらいので、もうちょっとなんとかしたい。具体的には、規定でないパラメータがあった場合は_logErrorを使って取れるパラメータの一覧を出すようにしたい
+
+
+- play系のoptsで取れるパラメータがどうにも分かりづらいので、もうちょっとなんとかしたい。具体的には、規定でないパラメータがあった場合は_logErrorを使って取れるパラメータの一覧を示すようにしたい
+    - これはconfigもそう。どうするかちょっと考える事
 
 
 
@@ -143,21 +130,8 @@ play系のoptsで取れるパラメータがどうにも分かりづらいので
 
 
 
-ファイル名からメタ指定情報を取得できるようにする
-- foo.m4a なら foo__LS123_LL456.m4a みたいな名前にする、という形式
-- とりあえず対応が必要なのはLSとLLのみでok。PSとPLも対応してよい
-- この情報は今のところは、必要になったタイミングで毎回parseする事にする。大したコストではないので
-    - このparse処理はva5.Cache内に書く(bgmでもseでも参照するので)
-    - この単位はframesなので、これをsecに変換する処理も必要
-        - この為には、asからサンプリングレート(Hzの方。ビットレートではない)を取れる必要がある。用意する事
-            - AudioBuffer.sampleRateプロパティで取れるようだ
-                - https://developer.mozilla.org/ja/docs/Web/API/AudioBuffer/sampleRate
-
-
 そろそろビルドスクリプト等を用意する事
 
-
-BGMのconnect時に、isOneshotフラグやloop系パラメータが変動している場合は、connectしないようにする事
 
 
 

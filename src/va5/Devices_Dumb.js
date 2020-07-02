@@ -26,12 +26,12 @@
   device.audioSourceToDuration = function (as) {
     if (as == null) { return null; }
     if (as.disposed) { return null; }
-    return 0;
+    return 0.1;
   }
   device.audioSourceToSampleRate = function (as) {
     if (as == null) { return null; }
     if (as.disposed) { return null; }
-    return 0;
+    return 8000;
   }
 
 
@@ -63,7 +63,7 @@
     var duration = 1;
     var state = va5.Util.createDeviceState(as, opts, duration);
     // 何も再生できないので、いきなり再生終了状態にしておく
-    // (たとえendPosがnullのループ再生だったとしても)
+    // (たとえ通常は自動終了しないループ再生だったとしても)
     state.playPausedPos = null;
     state.playEndedTimestamp = state.playStartedTimestamp;
 

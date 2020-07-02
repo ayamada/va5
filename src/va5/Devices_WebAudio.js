@@ -242,10 +242,10 @@
     state.pannerNodeType = pannerNodeType;
     state.pannerNode = pannerNode;
 
-    if (state.endPos == null) {
+    if (state.playEndSec == null) {
       state.sourceNode.loop = true;
-      state.sourceNode.loopStart = state.loopStart;
-      state.sourceNode.loopEnd = state.loopEnd;
+      state.sourceNode.loopStart = state.loopStartSec;
+      state.sourceNode.loopEnd = state.loopEndSec;
     }
     else {
       // NB: 古い端末で、自動再生終了すると音が鳴らなくなる問題があり、
@@ -256,8 +256,8 @@
       state.sourceNode.onended = function () { shutdownPlayingState(state); };
     }
 
-    if (state.endPos != null) {
-      state.sourceNode.start(0, state.replayStartPos, state.endPos - state.replayStartPos);
+    if (state.playEndSec != null) {
+      state.sourceNode.start(0, state.replayStartPos, state.playEndSec - state.replayStartPos);
     }
     else {
       state.sourceNode.start(0, state.replayStartPos);
@@ -363,15 +363,15 @@
     var elapsed = now - state.replayStartTimestamp;
     var rawPos = state.replayStartPos + (elapsed / state.pitch);
     // ループなしなら、そのままの値を再生位置として利用できる
-    if (state.endPos != null) { return rawPos; }
+    if (state.playEndSec != null) { return rawPos; }
     // ループありの場合は巻き戻りを考慮しなくてはならない
-    var loopStart = state.loopStart;
-    var loopEnd = state.loopEnd;
-    if (loopEnd <= loopStart) {
-      va5._logError(["found confused loopStart and loopEnd", loopStart, loopEnd]);
+    var loopStartSec = state.loopStartSec;
+    var loopEndSec = state.loopEndSec;
+    if (loopEndSec <= loopStartSec) {
+      va5._logError(["found confused loop parameters", {loopStartSec: loopStartSec, loopEndSec: loopEndSec}]);
       return null;
     }
-    return loopStart + ((rawPos - loopStart) % (loopEnd - loopStart));
+    return loopStartSec + ((rawPos - loopStartSec) % (loopEndSec - loopStartSec));
   };
 
 

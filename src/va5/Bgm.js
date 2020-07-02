@@ -141,7 +141,7 @@
 
     // voiceは常に非ループなので、もしnullなら0にする。
     // これが問題になるならvoiceではなくbgm扱いで再生すべき。
-    if (isVoice && !c.endPos) { c.endPos = 0; }
+    if (isVoice && !c.playEndSec) { c.playEndSec = 0; }
 
     // fadeを適用する前の再生音量
     var volumeTrue = c.volume * (isVoice ? baseVolumeVoice : baseVolume);
@@ -155,7 +155,7 @@
 
     var sleepPos = null;
     if (va5.config["is-pause-on-background"] && isBackgroundNow) {
-      sleepPos = c.startPos;
+      sleepPos = c.playStartSec;
     }
 
     var state = {
@@ -165,11 +165,11 @@
       pitch: c.pitch,
       pan: c.pan,
 
-      loopStart: c.loopStart,
-      loopEnd: c.loopEnd,
+      loopStartSec: c.loopStartSec,
+      loopEndSec: c.loopEndSec,
 
-      startPos: c.startPos,
-      endPos: c.endPos,
+      playStartSec: c.playStartSec,
+      playEndSec: c.playEndSec,
 
       volumeTrue: volumeTrue,
 
@@ -235,10 +235,10 @@
         volume: state.volumeTrue * state.fadeVolume,
         pitch: state.pitch,
         pan: state.pan,
-        loopStart: state.loopStart,
-        loopEnd: state.loopEnd,
-        startPos: state.startPos,
-        endPos: va5.Util.calcActualEndPos(state),
+        loopStartSec: state.loopStartSec,
+        loopEndSec: state.loopEndSec,
+        playStartSec: state.playStartSec,
+        playEndSec: va5.Util.calcActualPlayEndSec(state),
         isSleepingStart: (state.sleepPos != null)
       };
       va5._logDebug("loaded. play bgm or voice " + state.path + " : " + pch);
@@ -296,7 +296,7 @@
       canStopOldStateImmediately = true;
     }
     // ループなら終了直前判定になる事はない。transition処理を行う
-    else if (oldState.endPos == null) {
+    else if (oldState.playEndSec == null) {
       canStopOldStateImmediately = false;
     }
     // oldDurationとoldPosが非常に近い。

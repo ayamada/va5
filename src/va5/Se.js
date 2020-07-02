@@ -122,8 +122,8 @@
       pan: c.pan,
       isAlarm: isAlarm,
 
-      startPos: c.startPos,
-      endPos: c.endPos,
+      playStartSec: c.playStartSec,
+      playEndSec: c.playEndSec,
 
       volumeTrue: volumeTrue,
 
@@ -159,10 +159,10 @@
         volume: state.volume * baseVolume,
         pitch: state.pitch,
         pan: state.pan,
-        loopStart: null,
-        loopEnd: null,
-        startPos: state.startPos,
-        endPos: va5.Util.calcActualEndPos(state)
+        loopStartSec: null,
+        loopEndSec: null,
+        playStartSec: state.playStartSec,
+        playEndSec: va5.Util.calcActualPlayEndSec(state)
       };
       va5._logDebug("loaded. play se " + path + " : " + ch);
       state.playingState = va5._device.play(as, deviceOpts);
@@ -191,10 +191,10 @@
     state.volume = newVolume;
     state.pitch = newPitch;
     state.pan = newPan;
-    // NB: startPos/endPosのmergeも必要！
+    // NB: playStartSec/playEndSecのmergeも必要！
     //     (通常mergeでは不要なのだがload前mergeの時にだけ必要になる)
-    state.startPos = c.startPos;
-    state.endPos = c.endPos;
+    state.playStartSec = c.playStartSec;
+    state.playEndSec = c.playEndSec;
   }
 
 
@@ -206,8 +206,8 @@
     opts = opts || {};
     var ch = va5._validateSeCh(opts["channel"] || makeNewChannelId());
     var c = va5.Util.parsePlayCommonOpts(path, opts);
-    // Seでは必ずendPosを設定する必要がある(非ループ指定)
-    if (c.endPos == null) { c.endPos = 0; }
+    // Seでは必ずplayEndSecを設定する必要がある(非ループ指定)
+    if (c.playEndSec == null) { c.playEndSec = 0; }
 
     var seChatteringSec = va5.config["se-chattering-sec"];
     if (!seChatteringSec) { return playSeTrue(path, opts, c, ch); }
@@ -228,7 +228,7 @@
     if (va5._device.isFinished(lastState.playingState)) { return playSeTrue(path, opts, c, ch); }
     if (lastState.fading) { return playSeTrue(path, opts, c, ch); }
     c.path = path;
-    if (va5.Util.canConnect("connectIfSame", lastState, c, true)) { return playSeTrue(path, opts, c, ch); }
+    if (!va5.Util.canConnect("connectIfSame", lastState, c, true)) { return playSeTrue(path, opts, c, ch); }
     if (!va5._device.isInSeChatteringSec(lastState.playingState)) { return playSeTrue(path, opts, c, ch); }
     // chatterしていた。mergeを行う
     mergeState(lastState, c);
