@@ -119,29 +119,29 @@
   };
 
 
-  // playEndSecが0やマイナスの時は、duration側から動かした値にする必要がある。
-  // それを計算する関数
-  // NB: これは本来Bgm/Se内に含めるべき内容だが、
-  //     共通にしたいので、ここに置いている
-  Util.calcActualPlayEndSec = function (state) {
-    var playEndSecTrue = state.playEndSec;
-    if ((playEndSecTrue != null) && (playEndSecTrue <= 0)) {
+  // playEndSecTrue類が0やマイナスの時は、
+  // duration側から動かした値にする必要がある
+  function adjustEndSecTrue (state, key) {
+    var t = state[key];
+    if ((t != null) && (t <= 0)) {
       var duration = va5._device.audioSourceToDuration(state.as);
       if (0 < duration) {
-        playEndSecTrue = (playEndSecTrue % duration) + duration;
+        t = (t % duration) + duration;
       }
       else {
         //va5._logError("invalid duration found " + state.path);
         // deviceがdumbの時にこっちに来る。適当なダミー値をセットする
-        playEndSecTrue = 1;
+        t = 1;
       }
     }
-    return playEndSecTrue;
-  };
+    state[key] = t;
+  }
 
 
   // NB: これは本来Bgm/Se内に含めるべき内容だが、
   //     共通にしたいので、ここに置いている
+  // NB: playStartSec系はここではparseせず、そのまま保持する方針に
+  //     変更となった。これらのparseはload後に行う。
   Util.parsePlayCommonOpts = function (path, opts) {
     var r = {};
 
@@ -153,17 +153,55 @@
 
     // TODO: この辺りはpathからも読み取る(optsにあるならそちらを優先)
 
-    r.loopStartSec = va5._validateNumber("loopStartSec", 0, opts["loopStartSec"]||0, null, 0);
-    r.loopEndSec = opts["loopEndSec"] || null;
-    if (r.loopEndSec != null) { r.loopEndSec = va5._validateNumber("loopEndSec", 0, r.loopEndSec, null, null); }
-
+    r.loopStartSec = opts["loopStartSec"];
+    r.loopEndSec = opts["loopEndSec"];
     r.playStartSec = opts["playStartSec"];
-    if (r.playStartSec == null) { r.playStartSec = r.loopStartSec; }
-    r.playStartSec = va5._validateNumber("playStartSec", 0, r.playStartSec, null, r.loopStartSec);
     r.playEndSec = opts["playEndSec"];
-    if (r.playEndSec != null) { r.playEndSec = va5._validateNumber("playEndSec", null, r.playEndSec, null, null); }
 
     return r;
+  };
+
+
+  // parsePlayCommonOptsでparseしなかったパラメータをparseする。
+  // その結果はTrue系パラメータに反映される。
+  Util.parsePlayCommonOpts2 = function (r) {
+    // TODO: この辺りは、Secなし(frame版)パラメータが実装された際に大きく修正が必要(どちらを採用するか先に判定する必要がある)。あとで対応する事
+    // まず最初にどちらを採用するのか判定し、フラグに持つようにする
+    var isNeedConvertLoopStartToSec = false; // TODO
+    var isNeedConvertLoopEndToSec = false; // TODO
+    var isNeedConvertPlayStartToSec = false; // TODO
+    var isNeedConvertPlayEndToSec = false; // TODO
+
+    // validate処理
+    // NB: 元々のloopStartSec類を変更しないようにする事！
+    //     これらはcanConnect判定に使われるので変更してはいけない。
+    var loopStartSec = r.loopStartSec;
+    loopStartSec = va5._validateNumber("loopStartSec", 0, loopStartSec||0, null, 0);
+    var loopEndSec = r.loopEndSec;
+    if (loopEndSec != null) { loopEndSec = va5._validateNumber("loopEndSec", 0, loopEndSec, null, null); }
+    var playStartSec = r.playStartSec;
+    if (playStartSec == null) { playStartSec = loopStartSec; }
+    playStartSec = va5._validateNumber("playStartSec", 0, playStartSec, null, loopStartSec);
+    var playEndSec = r.playEndSec;
+    if (playEndSec != null) { playEndSec = va5._validateNumber("playEndSec", null, playEndSec, null, null); }
+
+    // True系パラメータへの反映
+    r.loopStartSecTrue = loopStartSec; // TODO: あとで loopStart(frame)にも対応させる事
+    r.loopEndSecTrue = loopEndSec; // TODO: あとで loopEnd(frame)にも対応させる事
+    r.playStartSecTrue = playStartSec; // TODO: あとで playStart(frame)にも対応させる事
+    r.playEndSecTrue = playEndSec; // TODO: あとで playEnd(frame)にも対応させる事
+    // loopEndSecTrue/playEndSecTrueは範囲内補正が必要
+    adjustEndSecTrue(r, "loopEndSecTrue");
+    adjustEndSecTrue(r, "playEndSecTrue");
+    return r;
+  };
+
+
+  // Bgm系にて、load前にplayEnd系パラメータの有無やloopEnd系パラメータの有無を
+  // 確認したいケースがある。それらを調べる関数を用意しておく
+  Util.hasPlayEnd = function (c) {
+  };
+  Util.hasLoopEnd = function (c) {
   };
 
 

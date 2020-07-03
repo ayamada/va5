@@ -119,7 +119,7 @@
     if (state.disposed) { unloadIfNeeded(state.path); return; }
     state.disposed = true;
     state.isCancelled = true;
-    state.sleepPos = null;
+    state.isSleep = null;
     if (!state.playingState) { unloadIfNeeded(state.path); return; }
     va5._device.disposePlayingState(state.playingState);
     state.playingState = null;
@@ -143,9 +143,6 @@
     // これが問題になるならvoiceではなくbgm扱いで再生すべき。
     if (isVoice && !c.playEndSec) { c.playEndSec = 0; }
 
-    // fadeを適用する前の再生音量
-    var volumeTrue = c.volume * (isVoice ? baseVolumeVoice : baseVolume);
-
     var transitionMode = va5._validateEnum("transitionMode", opts["transitionMode"]||"connectIfSame", ["connectNever", "connectIfSame", "connectIfPossible"], "connectIfSame");
     var fadeinSec = va5._validateNumber("fadeinSec", 0, opts["fadeinSec"]||0, null, 0);
     var fadeVolume = fadeinSec ? 0 : 1;
@@ -153,38 +150,26 @@
     var fadeDeltaPerSec = 0;
     if (fadeinSec) { fadeDeltaPerSec = (fadeEndVolume - fadeVolume) / fadeinSec; }
 
-    var sleepPos = null;
+    var isSleep = false;
     if (va5.config["is-pause-on-background"] && isBackgroundNow) {
-      sleepPos = c.playStartSec;
+      isSleep = true;
     }
 
-    var state = {
-      path: path,
+    var state = c; // volume, pitch, pan, loop系, play系
+    state.path = path;
+    state.volumeTrue = c.volume * (isVoice ? baseVolumeVoice : baseVolume);
 
-      volume: c.volume,
-      pitch: c.pitch,
-      pan: c.pan,
+    state.transitionMode = transitionMode;
+    state.fadeinSec = fadeinSec;
+    state.fadeVolume = fadeVolume;
+    state.fadeEndVolume = fadeEndVolume;
+    state.fadeDeltaPerSec = fadeDeltaPerSec;
 
-      loopStartSec: c.loopStartSec,
-      loopEndSec: c.loopEndSec,
-
-      playStartSec: c.playStartSec,
-      playEndSec: c.playEndSec,
-
-      volumeTrue: volumeTrue,
-
-      transitionMode: transitionMode,
-      fadeinSec: fadeinSec,
-      fadeVolume: fadeVolume,
-      fadeEndVolume: fadeEndVolume,
-      fadeDeltaPerSec: fadeDeltaPerSec,
-
-      as: null,
-      playingState: null,
-      isLoading: true,
-      sleepPos: sleepPos,
-      isCancelled: false
-    };
+    state.as = null;
+    state.playingState = null;
+    state.isLoading = true;
+    state.isSleep = isSleep;
+    state.isCancelled = false;
 
     return state;
   }
@@ -229,17 +214,19 @@
         return;
       }
       state.as = as;
+      // このタイミングで残りパラメータのvalidateを行い、True系パラメータを算出
+      va5.Util.parsePlayCommonOpts2(state);
       // NB: ローディング中にパラメータが変化している場合がある。
       //     なので元の値を参照せずに、stateから参照し直す必要がある
       var deviceOpts = {
         volume: state.volumeTrue * state.fadeVolume,
         pitch: state.pitch,
         pan: state.pan,
-        loopStartSec: state.loopStartSec,
-        loopEndSec: state.loopEndSec,
-        playStartSec: state.playStartSec,
-        playEndSec: va5.Util.calcActualPlayEndSec(state),
-        isSleepingStart: (state.sleepPos != null)
+        loopStartSec: state.loopStartSecTrue,
+        loopEndSec: state.loopEndSecTrue,
+        playStartSec: state.playStartSecTrue,
+        playEndSec: state.playEndSecTrue,
+        isSleepingStart: state.isSleep
       };
       va5._logDebug("loaded. play bgm or voice " + state.path + " : " + pch);
       state.playingState = va5._device.play(as, deviceOpts);
@@ -486,7 +473,7 @@
         continue;
       }
       // sleepしているなら何もしない(race conditionで起こり得る)
-      if (state.sleepPos != null) {
+      if (state.isSleep) {
         continue;
       }
       // キャンセルされているなら次の曲へ
@@ -536,16 +523,16 @@
   function emitSleep (state) {
     if (!state) { return; }
     if (!state.playingState) { return; }
-    if (state.sleepPos) { return; }
-    state.sleepPos = va5._device.calcPos(state.playingState) || 0;
+    if (state.isSleep) { return; }
+    state.isSleep = true;
     va5._device.sleep(state.playingState);
   }
 
   function emitAwake (state) {
     if (!state) { return; }
     if (!state.playingState) { return; }
-    if (state.sleepPos == null) { return; }
-    state.sleepPos = null;
+    if (!state.isSleep) { return; }
+    state.isSleep = false;
     va5._device.resume(state.playingState);
   }
 

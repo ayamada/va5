@@ -108,31 +108,16 @@
 
   function playSeTrue (path, opts, c, ch) {
     if (ch == null) { return null; }
-
     stopImmediatelyByCh(ch);
-
-    var isAlarm = !!opts["isAlarm"];
-
-    var volumeTrue = c.volume * baseVolume;
-
-    var state = {
-      path: path,
-      volume: c.volume,
-      pitch: c.pitch,
-      pan: c.pan,
-      isAlarm: isAlarm,
-
-      playStartSec: c.playStartSec,
-      playEndSec: c.playEndSec,
-
-      volumeTrue: volumeTrue,
-
-      as: null,
-      playingState: null,
-      loading: true,
-      fading: false,
-      cancelled: false
-    };
+    var state = c; // volume, pitch, pan, loop系, play系
+    state.path = path;
+    state.isAlarm = !!opts["isAlarm"];
+    state.volumeTrue = state.volume * baseVolume;
+    state.as = null;
+    state.playingState = null;
+    state.loading = true;
+    state.fading = false;
+    state.cancelled = false;
 
     // TODO: このfnがメモリリークの原因になる事はありえるか？ちょっと検証する必要がある…
     va5.Cache.load(path, function (as) {
@@ -152,6 +137,8 @@
         stopImmediatelyByCh(ch);
         return;
       }
+      // このタイミングで残りパラメータのvalidateを行い、True系パラメータを算出
+      va5.Util.parsePlayCommonOpts2(state);
       // NB: ローディング中にse-chattering-secによってパラメータが
       //     変化している場合がある。なので元の値を参照せずに、
       //     stateから参照し直す必要がある
@@ -161,8 +148,8 @@
         pan: state.pan,
         loopStartSec: null,
         loopEndSec: null,
-        playStartSec: state.playStartSec,
-        playEndSec: va5.Util.calcActualPlayEndSec(state)
+        playStartSec: state.playStartSecTrue,
+        playEndSec: state.playEndSecTrue
       };
       va5._logDebug("loaded. play se " + path + " : " + ch);
       state.playingState = va5._device.play(as, deviceOpts);
@@ -192,9 +179,12 @@
     state.pitch = newPitch;
     state.pan = newPan;
     // NB: playStartSec/playEndSecのmergeも必要！
-    //     (通常mergeでは不要なのだがload前mergeの時にだけ必要になる)
+    //     通常mergeではここには来ない(別音源判定される)。
+    //     load前mergeの時にだけここに来る(別音源判定よりも優先される為)
     state.playStartSec = c.playStartSec;
     state.playEndSec = c.playEndSec;
+    // NB: playStartSecTrue/playEndSecTrueはload前mergeの時点では
+    //     まだ算出されていないので、ここでの対応は不要となる
   }
 
 
@@ -228,6 +218,9 @@
     if (va5._device.isFinished(lastState.playingState)) { return playSeTrue(path, opts, c, ch); }
     if (lastState.fading) { return playSeTrue(path, opts, c, ch); }
     c.path = path;
+    // TODO: Seの方もBgm同様にtransitionModeを渡せるようにしてもよい。
+    //       ただしデフォルトはconnectIfSameになるようにしたい。
+    //       (それがちょっと面倒なので現状はこうしている)
     if (!va5.Util.canConnect("connectIfSame", lastState, c, true)) { return playSeTrue(path, opts, c, ch); }
     if (!va5._device.isInSeChatteringSec(lastState.playingState)) { return playSeTrue(path, opts, c, ch); }
     // chatterしていた。mergeを行う
