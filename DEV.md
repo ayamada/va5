@@ -87,36 +87,6 @@ TODO
 
 
 
-ループパラメータ関連の修正
-以下の順で対応していく
-
-
-
-4. BgmとSeとUtilにて、canConnectとmerge、またそれ以外でもこれらのSec版を参照している部分がないかを確認し、あればframe版も同様に対応する
-    - とりあえずcanConnectとmergeでの対応は必須
-    - しかしそれ以外にもSecを参照している箇所があるなら、対応しなくてはならないので、なめて確認する必要がある
-
-
-
-
-7. pathから loopStart loopEnd loopLength playStart playEnd playLength を読み取る機能を実装
-        - キー名はそれぞれ LS LE LL PS PE PL とする
-        - foo.m4a を foo__LS0LE123456PS0PE123456.m4a のようにrenameする。
-            - foo__LS0_LE123456_PS0_PE123456.m4a のように区切ってもokとする
-            - マイナス値も指定可能。 foo__PS0_PE-5000.m4a のようになる
-    - 考えた結果、Sec系も対応させる事にする
-        - キー名はそれぞれ LSS LES LLS PSS PES PLS とする
-            - foo__LSS0LES10.98765.m4a のようになる。ドットが複数入るのが難点
-    - これキー名もうちょっと分かりやすくならない？
-        - やっぱりLOOPLENGTHとかPLAYSTARTSECとかの方がいいと思う
-            - 長くなっても128文字ぐらいだから問題ない範囲だろう…
-    - Util.parsePlayCommonOptsと2の中に処理を入れればok
-
-
-
-
-
-
 
 
 

@@ -138,6 +138,50 @@
   }
 
 
+  function parseAndApplyPathParameter (r, path) {
+    if (path == null) { return; }
+    // - キーのセット一覧
+    //     - LOOPSTART, LOOPEND or LOOPLENGTH
+    //     - PLAYSTART, PLAYEND or PLAYLENGTH
+    //     - LOOPSTARTSEC, LOOPENDSEC or LOOPLENGTHSEC
+    //     - PLAYSTARTSEC, PLAYENDSEC or PLAYLENGTHSEC
+    // - 実例
+    //     - foo__LOOPSTART0_LOOPEND99600_PLAYSTART44800.m4a
+    //     - foo__LOOPSTARTSEC0.0_LOOPENDSEC2.0_PLAYSTART1.0.m4a
+    //     - foo__PLAYEND-0.05.m4a
+    //     - foo.m4a?__PLAYEND-0.05
+
+    // ディレクトリセパレータである「/」以前を除去する必要あり
+    // (親ディレクトリ部分に「__」があると引っかかってしまうのを避ける)
+    var found = path.match(/([^\/]*)$/);
+    if (found) { path = found[1]; }
+    found = path.match(/__(.*)/);
+    if (!found) { return; }
+    var params = {};
+    found[1].split("_").forEach(function (s) {
+      var m = s.match(/([A-Z]+)(.*)/);
+      if (m) {
+        var n = parseFloat(m[2]);
+        if (isFinite(n)) { params[m[1]] = n; }
+      }
+    });
+    va5._logDebug(["parse params from path", path, params]);
+
+    r.loopStartSec = params["LOOPSTARTSEC"];
+    r.loopEndSec = params["LOOPENDSEC"];
+    r.loopLengthSec = params["LOOPLENGTHSEC"];
+    r.loopStart = params["LOOPSTART"];
+    r.loopEnd = params["LOOPEND"];
+    r.loopLength = params["LOOPLENGTH"];
+    r.playStartSec = params["PLAYSTARTSEC"];
+    r.playEndSec = params["PLAYENDSEC"];
+    r.playLengthSec = params["PLAYLENGTHSEC"];
+    r.playStart = params["PLAYSTART"];
+    r.playEnd = params["PLAYEND"];
+    r.playLength = params["PLAYLENGTH"];
+    return;
+  }
+
   // NB: これは本来Bgm/Se内に含めるべき内容だが、
   //     共通にしたいので、ここに置いている
   // NB: playStartSec系はここではparseせず、そのまま保持する方針に
@@ -151,21 +195,19 @@
     r.pitch = va5._validateNumber("pitch", 0.1, opts["pitch"]||1, 10, 1);
     r.pan = va5._validateNumber("pan", -1, opts["pan"]||0, 1, 0);
 
-    // TODO: この辺りはpathからも読み取る(optsにあるならそちらを優先)
-
-    r.loopStart = opts["loopStart"];
-    r.loopEnd = opts["loopEnd"];
-    r.loopLength = opts["loopLength"];
-    r.playStart = opts["playStart"];
-    r.playEnd = opts["playEnd"];
-    r.playLength = opts["playLength"];
-
-    r.loopStartSec = opts["loopStartSec"];
-    r.loopEndSec = opts["loopEndSec"];
-    r.loopLengthSec = opts["loopLengthSec"];
-    r.playStartSec = opts["playStartSec"];
-    r.playEndSec = opts["playEndSec"];
-    r.playLengthSec = opts["playLengthSec"];
+    parseAndApplyPathParameter(r, path);
+    if (r.loopStartSec == null) { r.loopStartSec = opts["loopStartSec"]; }
+    if (r.loopEndSec == null) { r.loopEndSec = opts["loopEndSec"]; }
+    if (r.loopLengthSec == null) { r.loopLengthSec = opts["loopLengthSec"]; }
+    if (r.loopStart == null) { r.loopStart = opts["loopStart"]; }
+    if (r.loopEnd == null) { r.loopEnd = opts["loopEnd"]; }
+    if (r.loopLength == null) { r.loopLength = opts["loopLength"]; }
+    if (r.playStartSec == null) { r.playStartSec = opts["playStartSec"]; }
+    if (r.playEndSec == null) { r.playEndSec = opts["playEndSec"]; }
+    if (r.playLengthSec == null) { r.playLengthSec = opts["playLengthSec"]; }
+    if (r.playStart == null) { r.playStart = opts["playStart"]; }
+    if (r.playEnd == null) { r.playEnd = opts["playEnd"]; }
+    if (r.playLength == null) { r.playLength = opts["playLength"]; }
 
     // どちらを採用するのか判定し、フラグに持つ。優先順は以下の通り
     // - どちらも存在するならSecを優先
