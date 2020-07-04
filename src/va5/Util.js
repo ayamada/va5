@@ -155,26 +155,34 @@
 
     r.loopStart = opts["loopStart"];
     r.loopEnd = opts["loopEnd"];
+    r.loopLength = opts["loopLength"];
     r.playStart = opts["playStart"];
     r.playEnd = opts["playEnd"];
+    r.playLength = opts["playLength"];
 
     r.loopStartSec = opts["loopStartSec"];
     r.loopEndSec = opts["loopEndSec"];
+    r.loopLengthSec = opts["loopLengthSec"];
     r.playStartSec = opts["playStartSec"];
     r.playEndSec = opts["playEndSec"];
+    r.playLengthSec = opts["playLengthSec"];
 
     // どちらを採用するのか判定し、フラグに持つ。優先順は以下の通り
     // - どちらも存在するならSecを優先
     // - 片方しか存在しないなら存在する方を選択
     // - どちらも存在しないならSecを優先
-    r.isAdoptLoopStartToSec = true;
-    if ((r.loopStartSec == null) && (r.loopStart != null)) { r.isAdoptLoopStartToSec = false; }
-    r.isAdoptLoopEndToSec = true;
-    if ((r.loopEndSec == null) && (r.loopEnd != null)) { r.isAdoptLoopEndToSec = false; }
-    r.isAdoptPlayStartToSec = true;
-    if ((r.playStartSec == null) && (r.playStart != null)) { r.isAdoptPlayStartToSec = false; }
-    r.isAdoptPlayEndToSec = true;
-    if ((r.playEndSec == null) && (r.playEnd != null)) { r.isAdoptPlayEndToSec = false; }
+    r.isAdoptLoopStartSec = true;
+    if ((r.loopStartSec == null) && (r.loopStart != null)) { r.isAdoptLoopStartSec = false; }
+    r.isAdoptLoopEndSec = true;
+    if ((r.loopEndSec == null) && (r.loopEnd != null)) { r.isAdoptLoopEndSec = false; }
+    r.isAdoptLoopLengthSec = true;
+    if ((r.loopLengthSec == null) && (r.loopLength != null)) { r.isAdoptLoopLengthSec = false; }
+    r.isAdoptPlayStartSec = true;
+    if ((r.playStartSec == null) && (r.playStart != null)) { r.isAdoptPlayStartSec = false; }
+    r.isAdoptPlayEndSec = true;
+    if ((r.playEndSec == null) && (r.playEnd != null)) { r.isAdoptPlayEndSec = false; }
+    r.isAdoptPlayLengthSec = true;
+    if ((r.playLengthSec == null) && (r.playLength != null)) { r.isAdoptPlayLengthSec = false; }
 
     return r;
   };
@@ -183,28 +191,39 @@
   // parsePlayCommonOptsでparseしなかったパラメータをparseする。
   // その結果はTrue系パラメータに反映される。
   Util.parsePlayCommonOpts2 = function (r) {
-    var sampleRate;
-    if (!r.isAdoptLoopStartToSec || !r.isAdoptLoopEndToSec || !r.isAdoptPlayStartToSec || !r.isAdoptPlayEndToSec) {
-      sampleRate = va5._device.audioSourceToSampleRate(r.as);
-      if (!sampleRate) {
-        va5._logError(["failed to get sampleRate", r.path]);
-        sampleRate = 44100;
-      }
+    var sampleRate = va5._device.audioSourceToSampleRate(r.as);
+    if (!sampleRate) {
+      va5._logError(["failed to get sampleRate", r.path]);
+      sampleRate = 44100;
     }
 
     // validate処理
     // NB: 元々のloopStartSec類を変更しないようにする事！
     //     (これらはcanConnect判定に使われるので変更してはいけない)
 
-    // まずsec系とframe系のどちらを採用するかを決める
+    // まずsec系とframe系のどちらを採用するかを決め、その値を取る
+    // (その際にframe系の場合はSec化する)
     var loopStartSec = r.loopStartSec;
-    if (!r.isAdoptLoopStartToSec) { loopStartSec = r.loopStart / sampleRate; }
+    if (!r.isAdoptLoopStartSec) { loopStartSec = r.loopStart / sampleRate; }
     var loopEndSec = r.loopEndSec;
-    if (!r.isAdoptLoopEndToSec) { loopEndSec = r.loopEnd / sampleRate; }
+    if (!r.isAdoptLoopEndSec) { loopEndSec = r.loopEnd / sampleRate; }
+    var loopLengthSec = r.loopLengthSec;
+    if (!r.isAdoptLoopLengthSec) { loopLengthSec = r.loopLength / sampleRate; }
     var playStartSec = r.playStartSec;
-    if (!r.isAdoptPlayStartToSec) { playStartSec = r.playStart / sampleRate; }
+    if (!r.isAdoptPlayStartSec) { playStartSec = r.playStart / sampleRate; }
     var playEndSec = r.playEndSec;
-    if (!r.isAdoptPlayEndToSec) { playEndSec = r.playEnd / sampleRate; }
+    if (!r.isAdoptPlayEndSec) { playEndSec = r.playEnd / sampleRate; }
+    var playLengthSec = r.playLengthSec;
+    if (!r.isAdoptPlayLengthSec) { playLengthSec = r.playLength / sampleRate; }
+
+    // length系がnullでない＆startが存在する場合は、これをend系に変換し上書き
+    // (length系がnullでなくても、startがnullの場合はend化しない)
+    if ((loopLengthSec != null) && (loopStartSec != null)) {
+      loopEndSec = loopStartSec + loopLengthSec;
+    }
+    if ((playLengthSec != null) && (playStartSec != null)) {
+      playEndSec = playStartSec + playLengthSec;
+    }
 
     loopStartSec = va5._validateNumber("loopStartSec", 0, loopStartSec||0, null, 0);
     if (loopEndSec != null) { loopEndSec = va5._validateNumber("loopEndSec", 0, loopEndSec, null, null); }
@@ -227,9 +246,41 @@
 
   // Bgm系にて、load前にplayEnd系パラメータの有無やloopEnd系パラメータの有無を
   // 確認したいケースがある。それらを調べる関数を用意しておく
-  Util.hasPlayEnd = function (c) {
+  Util.hasPlayEnd = function (state) {
+    if (state.playStartSecTrue != null) {
+      // true版のstartが存在するなら、true版のendで判定できる
+      // (true版のstartはload後は必ずnull以外になる)
+      return (state.playEndSecTrue != null);
+    }
+
+    // EndSec採用フラグが立っている場合は簡単に判定できる
+    // (＝EndSecに何か有用な値が入っている)
+    if (state.isAdoptPlayEndSec) { return true; }
+    // そうでない場合はLengthSecとStartSecが両方あるならEndSecが算出できる
+    if (state.isAdoptPlayLengthSec && state.isAdoptPlayStartSec) { return true; }
+    // Sec版からは分からなかった。frame版から調査する
+    if (state.playEnd != null) { return true; }
+    if (state.playLength != null) { return true; }
+    // Endパラメータはどこにもなかった
+    return false;
   };
-  Util.hasLoopEnd = function (c) {
+  Util.hasLoopEnd = function (state) {
+    if (state.loopStartSecTrue != null) {
+      // true版のstartが存在するなら、true版のendで判定できる
+      // (true版のstartはload後は必ずnull以外になる)
+      return (state.loopEndSecTrue != null);
+    }
+
+    // EndSec採用フラグが立っている場合は簡単に判定できる
+    // (＝EndSecに何か有用な値が入っている)
+    if (state.isAdoptLoopEndSec) { return true; }
+    // そうでない場合はLengthSecとStartSecが両方あるならEndSecが算出できる
+    if (state.isAdoptLoopLengthSec && state.isAdoptLoopStartSec) { return true; }
+    // Sec版からは分からなかった。frame版から調査する
+    if (state.loopEnd != null) { return true; }
+    if (state.loopLength != null) { return true; }
+    // Endパラメータはどこにもなかった
+    return false;
   };
 
 
@@ -242,10 +293,20 @@
     if (transitionMode == "connectNever") { return false; }
     // NB: ここからconnectIfPossibleの判定。指定パラメータ全てが同一なら真
     if (state1.path != state2.path) { return false; }
+    if (!isSkipLoop) {
+      if (state1.loopStartSec != state2.loopStartSec) { return false; }
+      if (state1.loopStart != state2.loopStart) { return false; }
+      if (state1.loopEndSec != state2.loopEndSec) { return false; }
+      if (state1.loopEnd != state2.loopEnd) { return false; }
+      if (state1.loopLengthSec != state2.loopLengthSec) { return false; }
+      if (state1.loopLength != state2.loopLength) { return false; }
+    }
     if (state1.playStartSec != state2.playStartSec) { return false; }
+    if (state1.playStart != state2.playStart) { return false; }
     if (state1.playEndSec != state2.playEndSec) { return false; }
-    if (!isSkipLoop && (state1.loopStartSec != state2.loopStartSec)) { return false; }
-    if (!isSkipLoop && (state1.loopEndSec != state2.loopEndSec)) { return false; }
+    if (state1.playEnd != state2.playEnd) { return false; }
+    if (state1.playLengthSec != state2.playLengthSec) { return false; }
+    if (state1.playLength != state2.playLength) { return false; }
     if (transitionMode == "connectIfPossible") { return true; }
     // NB: ここからconnectIfSameの判定。追加の指定パラメータ全ても同一なら真
     if (state1.pitch != state2.pitch) { return false; }

@@ -178,13 +178,30 @@
     state.volume = newVolume;
     state.pitch = newPitch;
     state.pan = newPan;
-    // NB: playStartSec/playEndSecのmergeも必要！
-    //     通常mergeではここには来ない(別音源判定される)。
-    //     load前mergeの時にだけここに来る(別音源判定よりも優先される為)
-    state.playStartSec = c.playStartSec;
-    state.playEndSec = c.playEndSec;
-    // NB: playStartSecTrue/playEndSecTrueはload前mergeの時点では
-    //     まだ算出されていないので、ここでの対応は不要となる
+    // NB: load完了後stateのmergeは上記だけでよいが、
+    //     load完了前mergeではplay/loop系パラメータの上書きも必要となる
+    //     (load完了前はtrue系パラメータはまだ算出されていないので、
+    //     そちらをいじる必要はない)
+    if (state.loading) {
+      state.loopStartSec = c.loopStartSec;
+      state.loopStart = c.loopStart;
+      state.loopEndSec = c.loopEndSec;
+      state.loopEnd = c.loopEnd;
+      state.loopLengthSec = c.loopLengthSec;
+      state.loopLength = c.loopLength;
+      state.playStartSec = c.playStartSec;
+      state.playStart = c.playStart;
+      state.playEndSec = c.playEndSec;
+      state.playEnd = c.playEnd;
+      state.playLengthSec = c.playLengthSec;
+      state.playLength = c.playLength;
+      state.isAdoptLoopStartSec = c.isAdoptLoopStartSec;
+      state.isAdoptLoopEndSec = c.isAdoptLoopEndSec;
+      state.isAdoptLoopLengthSec = c.isAdoptLoopLengthSec;
+      state.isAdoptPlayStartSec = c.isAdoptPlayStartSec;
+      state.isAdoptPlayEndSec = c.isAdoptPlayEndSec;
+      state.isAdoptPlayLengthSec = c.isAdoptPlayLengthSec;
+    }
   }
 
 

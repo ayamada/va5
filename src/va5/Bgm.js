@@ -139,9 +139,9 @@
 
     var c = va5.Util.parsePlayCommonOpts(path, opts);
 
-    // voiceは常に非ループなので、もしnullなら0にする。
+    // voiceは常に非ループなので、もしnullなら0(音源終端)にする。
     // これが問題になるならvoiceではなくbgm扱いで再生すべき。
-    if (isVoice && !c.playEndSec) { c.playEndSec = 0; }
+    if (isVoice && !va5.Util.hasPlayEnd(c)) { c.playEndSec = 0; }
 
     var transitionMode = va5._validateEnum("transitionMode", opts["transitionMode"]||"connectIfSame", ["connectNever", "connectIfSame", "connectIfPossible"], "connectIfSame");
     var fadeinSec = va5._validateNumber("fadeinSec", 0, opts["fadeinSec"]||0, null, 0);
@@ -283,7 +283,7 @@
       canStopOldStateImmediately = true;
     }
     // ループなら終了直前判定になる事はない。transition処理を行う
-    else if (oldState.playEndSec == null) {
+    else if (!va5.Util.hasPlayEnd(oldState)) {
       canStopOldStateImmediately = false;
     }
     // oldDurationとoldPosが非常に近い。

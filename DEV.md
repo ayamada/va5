@@ -81,17 +81,14 @@ TODO
     - ループありの場合はちゃんと動いている
 
 
+- 非loop(playEndあり)のBGMの再生途中で別の非loopBGMを再生しようとしてフェードしたが、始まらなかった
+    - ↑と同じ問題か？
+    - 次の曲がloopBGMなら普通に始まった
+
 
 
 ループパラメータ関連の修正
 以下の順で対応していく
-
-
-
-
-
-3. playLength playLengthSec loopLength loopLengthSec を実装
-    - 内部的にはplayEnd playEndSec loopEnd loopEndSecに変換し統一的に扱う
 
 
 
