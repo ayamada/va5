@@ -153,10 +153,28 @@
 
     // TODO: この辺りはpathからも読み取る(optsにあるならそちらを優先)
 
+    r.loopStart = opts["loopStart"];
+    r.loopEnd = opts["loopEnd"];
+    r.playStart = opts["playStart"];
+    r.playEnd = opts["playEnd"];
+
     r.loopStartSec = opts["loopStartSec"];
     r.loopEndSec = opts["loopEndSec"];
     r.playStartSec = opts["playStartSec"];
     r.playEndSec = opts["playEndSec"];
+
+    // どちらを採用するのか判定し、フラグに持つ。優先順は以下の通り
+    // - どちらも存在するならSecを優先
+    // - 片方しか存在しないなら存在する方を選択
+    // - どちらも存在しないならSecを優先
+    r.isAdoptLoopStartToSec = true;
+    if ((r.loopStartSec == null) && (r.loopStart != null)) { r.isAdoptLoopStartToSec = false; }
+    r.isAdoptLoopEndToSec = true;
+    if ((r.loopEndSec == null) && (r.loopEnd != null)) { r.isAdoptLoopEndToSec = false; }
+    r.isAdoptPlayStartToSec = true;
+    if ((r.playStartSec == null) && (r.playStart != null)) { r.isAdoptPlayStartToSec = false; }
+    r.isAdoptPlayEndToSec = true;
+    if ((r.playEndSec == null) && (r.playEnd != null)) { r.isAdoptPlayEndToSec = false; }
 
     return r;
   };
@@ -165,34 +183,44 @@
   // parsePlayCommonOptsでparseしなかったパラメータをparseする。
   // その結果はTrue系パラメータに反映される。
   Util.parsePlayCommonOpts2 = function (r) {
-    // TODO: この辺りは、Secなし(frame版)パラメータが実装された際に大きく修正が必要(どちらを採用するか先に判定する必要がある)。あとで対応する事
-    // まず最初にどちらを採用するのか判定し、フラグに持つようにする
-    var isNeedConvertLoopStartToSec = false; // TODO
-    var isNeedConvertLoopEndToSec = false; // TODO
-    var isNeedConvertPlayStartToSec = false; // TODO
-    var isNeedConvertPlayEndToSec = false; // TODO
+    var sampleRate;
+    if (!r.isAdoptLoopStartToSec || !r.isAdoptLoopEndToSec || !r.isAdoptPlayStartToSec || !r.isAdoptPlayEndToSec) {
+      sampleRate = va5._device.audioSourceToSampleRate(r.as);
+      if (!sampleRate) {
+        va5._logError(["failed to get sampleRate", r.path]);
+        sampleRate = 44100;
+      }
+    }
 
     // validate処理
     // NB: 元々のloopStartSec類を変更しないようにする事！
-    //     これらはcanConnect判定に使われるので変更してはいけない。
+    //     (これらはcanConnect判定に使われるので変更してはいけない)
+
+    // まずsec系とframe系のどちらを採用するかを決める
     var loopStartSec = r.loopStartSec;
-    loopStartSec = va5._validateNumber("loopStartSec", 0, loopStartSec||0, null, 0);
+    if (!r.isAdoptLoopStartToSec) { loopStartSec = r.loopStart / sampleRate; }
     var loopEndSec = r.loopEndSec;
-    if (loopEndSec != null) { loopEndSec = va5._validateNumber("loopEndSec", 0, loopEndSec, null, null); }
+    if (!r.isAdoptLoopEndToSec) { loopEndSec = r.loopEnd / sampleRate; }
     var playStartSec = r.playStartSec;
+    if (!r.isAdoptPlayStartToSec) { playStartSec = r.playStart / sampleRate; }
+    var playEndSec = r.playEndSec;
+    if (!r.isAdoptPlayEndToSec) { playEndSec = r.playEnd / sampleRate; }
+
+    loopStartSec = va5._validateNumber("loopStartSec", 0, loopStartSec||0, null, 0);
+    if (loopEndSec != null) { loopEndSec = va5._validateNumber("loopEndSec", 0, loopEndSec, null, null); }
     if (playStartSec == null) { playStartSec = loopStartSec; }
     playStartSec = va5._validateNumber("playStartSec", 0, playStartSec, null, loopStartSec);
-    var playEndSec = r.playEndSec;
     if (playEndSec != null) { playEndSec = va5._validateNumber("playEndSec", null, playEndSec, null, null); }
 
     // True系パラメータへの反映
-    r.loopStartSecTrue = loopStartSec; // TODO: あとで loopStart(frame)にも対応させる事
-    r.loopEndSecTrue = loopEndSec; // TODO: あとで loopEnd(frame)にも対応させる事
-    r.playStartSecTrue = playStartSec; // TODO: あとで playStart(frame)にも対応させる事
-    r.playEndSecTrue = playEndSec; // TODO: あとで playEnd(frame)にも対応させる事
+    r.loopStartSecTrue = loopStartSec;
+    r.loopEndSecTrue = loopEndSec;
+    r.playStartSecTrue = playStartSec;
+    r.playEndSecTrue = playEndSec;
     // loopEndSecTrue/playEndSecTrueは範囲内補正が必要
     adjustEndSecTrue(r, "loopEndSecTrue");
     adjustEndSecTrue(r, "playEndSecTrue");
+
     return r;
   };
 

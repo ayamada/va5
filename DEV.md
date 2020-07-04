@@ -86,50 +86,22 @@ TODO
 ループパラメータ関連の修正
 以下の順で対応していく
 
-1. playStart playEnd を実装(secではないframe単位の奴)
-    - 内部的にはsec単位で統一的に扱う
-        - frameからsecの変換にはsampleRateの取得が必要。以下のどちらかで取れる
-            - va5.getSampleRate(path)
-            - va5._device.audioSourceToSampleRate(as)
-        - これ問題があって、loadがまだ終わってない段階ではsampleRateの参照ができない！どうする？
-            - といっても、個別に保持する以外に手はないのでは…
-            - その方向で進める事
-            - この為、canConnectとmergeの判定を追加する必要もある！
-            - device.playに渡す直前で、どちらを採用するか判定する？
-                - 「playStartとplayEndはvalidateで加工せずに保持する」というルールにしておけば、nullかどうかで判定して処理できる。そしてどちらにせよload後にvalidateを通す事になる。
-                    - loadはasyncなのでvalidateでエラーログ出力されるのは少し遅れるが、例外とは違い処理は続行されるしスタックトレースもないので、多少遅れても大差はない
-                    - この方向で。
-                    - 処理が完了してplayStartSec playEndSecに反映が済んだら、playStart playEndはnullで上書きしておく事(これで何度も再計算するのを防ぐ)
-    - ↑の実装で、canConnect判定を正しくできるか検討する事！できない場合は考える必要がある…
-        - できないと思う…
-        - playStartSec/playEndSec/playStart/playEndは初期状態のままにした上で、playStartSecTrue/playEndSecTrueを用意する、しかないと思う
-            - このplayStartSecTrue/playEndSecTrueはload完了直後に生成するようにする(つまりこの4パラメータは生成時にはvalidateはせず、load完了直後にvalidateも行う)
-    - 実装順について
-        - まず最初に、既存のplayStartSec/playEndSecの対になる、playStartSecTrue/playEndSecTrueの実装をBgmとSeに対して行う
-        - 既存のplayStartSec/playEndSec/loopStartSec/loopEndSecのvalidateのタイミングを、loadが終わってからに変更する
-            - 今ここ
-        - parsePlayCommonOptsがplayStart/playEndもparseするようにする(validateはなし)
-        - BgmとSeのstateにplayStart/playEndを追加
-        - BgmとSeのloadハンドル内の最初の方で、playStart/playEndがnullでないならnullにした上でvalidateで加工しplayStartSec/playEndSecに反映する
-        - ...
-        - ...
-        - ...
-        - ...
-        - ...
-        - canConnect判定のplayStart/playEnd対応を追加
-        - merge系処理のplayStart/playEnd対応を追加
 
 
 
 
-2. loopStart loopEnd を実装(secではないframe単位の奴)
-    - これはSeにはない筈だが一応確認
-    - これも個別に保持するしかない
-        - canConnectとmergeの判定を追加する必要もある！
-3. playLength playLengthSec を実装
-    - 内部的にはplayEnd playEndSecに変換し統一的に扱う
-6. loopLength loopLengthSec を実装
-    - 内部的にはloopEnd loopEndSecに変換し統一的に扱う
+3. playLength playLengthSec loopLength loopLengthSec を実装
+    - 内部的にはplayEnd playEndSec loopEnd loopEndSecに変換し統一的に扱う
+
+
+
+4. BgmとSeとUtilにて、canConnectとmerge、またそれ以外でもこれらのSec版を参照している部分がないかを確認し、あればframe版も同様に対応する
+    - とりあえずcanConnectとmergeでの対応は必須
+    - しかしそれ以外にもSecを参照している箇所があるなら、対応しなくてはならないので、なめて確認する必要がある
+
+
+
+
 7. pathから loopStart loopEnd loopLength playStart playEnd playLength を読み取る機能を実装
         - キー名はそれぞれ LS LE LL PS PE PL とする
         - foo.m4a を foo__LS0LE123456PS0PE123456.m4a のようにrenameする。
@@ -152,8 +124,12 @@ TODO
 
 
 
-- play系のoptsで取れるパラメータがどうにも分かりづらいので、もうちょっとなんとかしたい。具体的には、規定でないパラメータがあった場合は_logErrorを使って取れるパラメータの一覧を示すようにしたい
+- play系のoptsで指定できる引数をミスしやすいのをなんとかしたい
+    - 具体的には、規定でないパラメータがあった場合は_logErrorを使って取れるパラメータの一覧を出力したい(その上で例外は投げずにfallback値での処理を続行する)
     - これはconfigもそう。どうするかちょっと考える事
+        - configの方はおそらくva5.getConfig()/va5.setConfig()形式にするしかないと思う(getter/setterではfallback処理ができない)
+            - この場合はconfigのエントリ毎にdefmacro的なdefentryを作って対応する方向にできると思う
+        - play系optsの方も同じようにしたいのだけど、defentryを作るのがかなり難しい、ちょっと考える必要がある
 
 
 
