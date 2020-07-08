@@ -138,8 +138,14 @@
   }
 
 
-  function parseAndApplyPathParameter (r, path) {
-    if (path == null) { return; }
+  function setP (r, rk, params, pk) {
+    var v = params[pk];
+    if (v != null) { r[rk] = v; }
+  }
+
+  function parseAndApplyPathParameter (path) {
+    var r = {};
+    if (path == null) { return r; }
     // - キーのセット一覧
     //     - LOOPSTART, LOOPEND or LOOPLENGTH
     //     - PLAYSTART, PLAYEND or PLAYLENGTH
@@ -147,19 +153,23 @@
     //     - PLAYSTARTSEC, PLAYENDSEC or PLAYLENGTHSEC
     // - 実例
     //     - foo__LOOPSTART0_LOOPEND99600_PLAYSTART44800.m4a
-    //     - foo__LOOPSTARTSEC0.0_LOOPENDSEC2.0_PLAYSTART1.0.m4a
-    //     - foo__PLAYEND-0.05.m4a
-    //     - foo.m4a?__PLAYEND-0.05
+    //     - foo__LOOPSTARTSEC0.5_LOOPENDSEC2.0_PLAYSTARTSEC1.0.m4a
+    //     - foo__LOOPSTARTSEC=0.5_LOOPENDSEC=2.0_PLAYSTARTSEC=1.0.m4a # も可
+    //     - foo__PLAYEND-1.5.m4a
+    //     - foo__PLAYEND=-1.5.m4a # マイナス値ありなら=入りが分かりやすい？
+    //     - foo.m4a#__PLAYEND-1.5 # キャッシュが増えるのでよくない
+    //     - foo.m4a?__PLAYEND-1.5 # キャッシュがとても増えるのでとてもよくない
+    //     - foo__PLAYEND5.3gp -> foo__PLAYEND5_.3gp # 5.3と認識されるのを防ぐ
 
-    // ディレクトリセパレータである「/」以前を除去する必要あり
+    // ディレクトリセパレータである「/」以前を除去する
     // (親ディレクトリ部分に「__」があると引っかかってしまうのを避ける)
     var found = path.match(/([^\/]*)$/);
     if (found) { path = found[1]; }
     found = path.match(/__(.*)/);
-    if (!found) { return; }
+    if (!found) { return r; }
     var params = {};
     found[1].split("_").forEach(function (s) {
-      var m = s.match(/([A-Z]+)(.*)/);
+      var m = s.match(/([A-Z]+)=?(.*)/);
       if (m) {
         var n = parseFloat(m[2]);
         if (isFinite(n)) { params[m[1]] = n; }
@@ -167,19 +177,39 @@
     });
     va5._logDebug(["parse params from path", path, params]);
 
-    r.loopStartSec = params["LOOPSTARTSEC"];
-    r.loopEndSec = params["LOOPENDSEC"];
-    r.loopLengthSec = params["LOOPLENGTHSEC"];
-    r.loopStart = params["LOOPSTART"];
-    r.loopEnd = params["LOOPEND"];
-    r.loopLength = params["LOOPLENGTH"];
-    r.playStartSec = params["PLAYSTARTSEC"];
-    r.playEndSec = params["PLAYENDSEC"];
-    r.playLengthSec = params["PLAYLENGTHSEC"];
-    r.playStart = params["PLAYSTART"];
-    r.playEnd = params["PLAYEND"];
-    r.playLength = params["PLAYLENGTH"];
-    return;
+    // 特殊ショートカット
+    if ("NL" in params) { r["playEnd"] = 0; } // NO LOOP
+    if ("ME" in params) { r["playEnd"] = 0; } // MUSIC EFFECT(ツクール呼称)
+
+    // ショートカット
+    setP(r, "loopStartSec", params, "LSS");
+    setP(r, "loopEndSec", params, "LES");
+    setP(r, "loopLengthSec", params, "LLS");
+    setP(r, "loopStart", params, "LS");
+    setP(r, "loopEnd", params, "LE");
+    setP(r, "loopLength", params, "LL");
+    setP(r, "playStartSec", params, "PSS");
+    setP(r, "playEndSec", params, "PES");
+    setP(r, "playLengthSec", params, "PLS");
+    setP(r, "playStart", params, "PS");
+    setP(r, "playEnd", params, "PE");
+    setP(r, "playLength", params, "PL");
+
+    // 通常
+    setP(r, "loopStartSec", params, "LOOPSTARTSEC");
+    setP(r, "loopEndSec", params, "LOOPENDSEC");
+    setP(r, "loopLengthSec", params, "LOOPLENGTHSEC");
+    setP(r, "loopStart", params, "LOOPSTART");
+    setP(r, "loopEnd", params, "LOOPEND");
+    setP(r, "loopLength", params, "LOOPLENGTH");
+    setP(r, "playStartSec", params, "PLAYSTARTSEC");
+    setP(r, "playEndSec", params, "PLAYENDSEC");
+    setP(r, "playLengthSec", params, "PLAYLENGTHSEC");
+    setP(r, "playStart", params, "PLAYSTART");
+    setP(r, "playEnd", params, "PLAYEND");
+    setP(r, "playLength", params, "PLAYLENGTH");
+
+    return r;
   }
 
   // NB: これは本来Bgm/Se内に含めるべき内容だが、
@@ -187,7 +217,7 @@
   // NB: playStartSec系はここではparseせず、そのまま保持する方針に
   //     変更となった。これらのparseはload後に行う。
   Util.parsePlayCommonOpts = function (path, opts) {
-    var r = {};
+    var r = parseAndApplyPathParameter(path);
 
     r.volume = opts["volume"];
     if (r.volume == null) { r.volume = 1; }
@@ -195,7 +225,6 @@
     r.pitch = va5._validateNumber("pitch", 0.1, opts["pitch"]||1, 10, 1);
     r.pan = va5._validateNumber("pan", -1, opts["pan"]||0, 1, 0);
 
-    parseAndApplyPathParameter(r, path);
     if (r.loopStartSec == null) { r.loopStartSec = opts["loopStartSec"]; }
     if (r.loopEndSec == null) { r.loopEndSec = opts["loopEndSec"]; }
     if (r.loopLengthSec == null) { r.loopLengthSec = opts["loopLengthSec"]; }

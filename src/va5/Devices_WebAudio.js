@@ -253,7 +253,16 @@
       //     それへのdirty fixとして、わざとloop有効にしてloopを検出したら
       //     手で音源を停止する、という技があった。
       //     でももうやらなくてもいいだろう…
-      state.sourceNode.onended = function () { shutdownPlayingState(state); };
+      state.sourceNode.onended = function () {
+        // NB: 通常はそのまま終了でよいが、sleepに入る時は破棄してはいけない
+        if (state.playPausedPos == null) {
+          va5._logDebug(["onended", state, "and shutdown"]);
+          shutdownPlayingState(state);
+        }
+        else {
+          va5._logDebug(["onended", state, "but slept (dont shutdown)"]);
+        }
+      };
     }
 
     if (state.playEndSec != null) {

@@ -256,7 +256,7 @@
     var newState = makeInitialState(isVoice, path, opts);
 
     var stats = pchToStatus[pch] || [null, null]; pchToStatus[pch] = stats;
-    var oldState = stats && stats[0];
+    var oldState = stats[0];
 
     // oldStateが存在していない場合は即座に再生開始できる
     if (!oldState) {
@@ -271,24 +271,20 @@
     // 即座に再生停止を行って再生開始してよい
     var canStopOldStateImmediately;
     var oldPos = va5._device.calcPos(oldState.playingState);
-    var oldDuration = oldState.as && va5._device.audioSourceToDuration(oldState.as);
+    var endPos = oldState.playEndSecTrue;
     // posを取るのに失敗した。再生開始前もしくは既に終了している。
     // 即座に再生停止を行うべきである
-    if (!oldPos) {
+    if (oldPos == null) {
       canStopOldStateImmediately = true;
     }
-    // durationを取るのに失敗した。再生開始前もしくは既に終了している。
-    // 即座に再生停止を行うべきである
-    else if (!oldDuration) {
-      canStopOldStateImmediately = true;
-    }
-    // ループなら終了直前判定になる事はない。transition処理を行う
+    // ループならフェードアウト以外で終了直前判定になる事はない
+    // (フェードアウトの場合は安全に処理できる)
     else if (!va5.Util.hasPlayEnd(oldState)) {
       canStopOldStateImmediately = false;
     }
-    // oldDurationとoldPosが非常に近い。
+    // 非ループかつendPosとoldPosが非常に近い。
     // 即座に再生停止を行って再生開始した方が安全
-    else if (oldDuration < oldPos + 0.1) {
+    else if ((endPos != null) && (endPos < oldPos + 0.01)) {
       canStopOldStateImmediately = true;
     }
 
@@ -307,7 +303,9 @@
     if (va5.Util.canConnect(newState.transitionMode, newState, oldState)) {
       // connectを行う。具体的には、即座に、volume, pitch, panの3パラメータの
       // 適用をoldStateに行う。そしてnewStateは処分する。
-      // また、もしフェード途中にある場合はフェードイン復帰させる
+      // まぎらわしいが、volumeは即座に適用される(フェード適用はされない)。
+      // フェード適用がされるのは、途中までフェードアウトしていた時のみで、
+      // この時だけフェードイン化がなされる。
       oldState.volume = newState.volume;
       oldState.volumeTrue = newState.volumeTrue;
       oldState.pitch = newState.pitch;
@@ -315,13 +313,16 @@
       va5._device.setVolume(oldState.playingState, oldState.volumeTrue * oldState.fadeVolume);
       va5._device.setPitch(oldState.playingState, oldState.pitch);
       va5._device.setPan(oldState.playingState, oldState.pan);
-      if (oldState.fadeVolume != 1) {
+      // フェードアウト中だった時のみ、フェードイン化を行う
+      if (oldState.fadeDeltaPerSec) {
         oldState.fadeEndVolume = 1;
         oldState.fadeDeltaPerSec = 1 / (defaultBgmFadeSec || 0.01);
       }
       stats[0] = oldState;
+      // 次の曲の予約は破棄する
       if (stats[1]) { stats[1].isCancelled = true; }
       stats[1] = null;
+      // newsStateも破棄する(oldStateにmergeされたので)
       newState.isCancelled = true;
       disposeState(newState);
       return;
@@ -331,7 +332,7 @@
     stats[0] = oldState;
     // oldStateはフェードアウト終了させる
     oldState.fadeEndVolume = 0;
-    oldState.fadeDeltaPerSec = -1 / (defaultBgmFadeSec || 0.01);
+    oldState.fadeDeltaPerSec = (-1 / (defaultBgmFadeSec || 0.01));
     // 古いnextStateがあるならキャンセルしておく必要がある
     if (stats[1]) { stats[1].isCancelled = true; }
     // newStateはnextStateへと突っ込む
