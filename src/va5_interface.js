@@ -69,12 +69,25 @@
     va5.Cache.unload(path);
   };
 
+  va5.unloadIfUnused = function (path) {
+    va5._logDebug(["called va5.unloadIfUnused", path]);
+    va5.init();
+    va5.Cache.unloadIfUnused(path);
+  };
+
   va5.unloadAll = function () {
     va5._logDebug("called va5.unloadAll");
     va5.init();
     va5.Bgm.stopImmediatelyAll(); // voiceもここに含まれる
     va5.Se.stopImmediatelyAll();
     va5.Cache.getAllPaths().forEach(va5.Cache.unload);
+  };
+
+  // TODO: これは気軽に呼ばれる割にかなり重い、軽量化できるならしたいが…
+  va5.unloadAllIfUnused = function () {
+    va5._logDebug("called va5.unloadAllIfUnused");
+    va5.init();
+    va5.Cache.getAllPaths().forEach(va5.Cache.unloadIfUnused);
   };
 
   // NB: ロード済のpathのみ取得可能、未ロードの場合はnullが返る

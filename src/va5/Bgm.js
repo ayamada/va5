@@ -88,29 +88,28 @@
     });
   };
 
-  function unloadIfNeeded (path) {
-    if (!va5.config["is-unload-automatically-when-finished-bgm"]) { return; }
-    // 参照可能な全stateをなめて、このpathが1個もなければunloadする
-    // (再生中や予約が1個でもあるならunloadはしない)
-    var found = false;
+  Bgm.hasReference = function (path) {
     var pch;
     for (pch in pchToStatus) {
       var stats = pchToStatus[pch];
       if (!stats) { continue; }
       var s = stats[0];
       if (s && (path == s.path)) {
-        found = true;
-        break;
+        return true;
       }
       s = stats[1];
       if (s && (path == s.path)) {
-        found = true;
-        break;
+        return true;
       }
     }
-    if (!found) {
-      Cache.unload(path);
-    }
+    return false;
+  };
+
+  function unloadIfNeeded (path) {
+    if (!va5.config["is-unload-automatically-when-finished-bgm"]) { return; }
+    // 参照可能な全stateをなめて、このpathが1個もなければunloadする
+    // (再生中や予約が1個でもあるならunloadはしない)
+    va5.Cache.unloadIfUnused(path);
   }
 
   // これは再生即停止も兼ねている

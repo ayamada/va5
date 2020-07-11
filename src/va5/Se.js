@@ -10,7 +10,6 @@
   // path -> [ch1, ch2, ...]
   var pathToChs = {};
 
-
   var fadeGranularityMsec = 100;
 
 
@@ -321,5 +320,18 @@
     });
     return result;
   };
+
+
+  Se.hasReference = function (path) {
+    var ch;
+    for (ch in chToState) {
+      var state = chToState[ch];
+      if (state && (path == state.path)) {
+        return true;
+      }
+    }
+    return false;
+  };
+
 
 })(this);

@@ -128,6 +128,13 @@
   };
 
 
+  Cache.unloadIfUnused = function (path) {
+    if (va5.Se.hasReference(path)) { return; }
+    if (va5.Bgm.hasReference(path)) { return; }
+    Cache.unload(path);
+  };
+
+
   var isRunningPreloadProcess = false;
   function preloadProcess () {
     isRunningPreloadProcess = true;
