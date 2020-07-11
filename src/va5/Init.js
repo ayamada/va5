@@ -8,6 +8,11 @@
     if (isInitialized) { return; }
     isInitialized = true;
 
+    // 強制dumbモード対応
+    if (va5.config["is-use-dumb-mode-forcibly"]) {
+      va5._device = va5.Devices.Dumb;
+    }
+
     // NB: 事前にva5._deviceをセットしておく事で、
     //     WebAudio以外の音源にも対応できる(例えばelectron等)
     //     ただしgccのname manglingに注意する必要がある

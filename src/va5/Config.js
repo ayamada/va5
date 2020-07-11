@@ -32,6 +32,7 @@
     "is-pause-on-background": true,
     "is-unload-automatically-when-finished-bgm": false,
     "se-chattering-sec": 0.05,
+    "is-use-dumb-mode-forcibly": false,
     "additional-query-string": null // 自動ではuriエスケープされない、要注意
   };
 
@@ -104,6 +105,8 @@
       if (v == null) { return; }
       d["se-chattering-sec"] = v;
     },
+    get "is-use-dumb-mode-forcibly" () { return d["is-use-dumb-mode-forcibly"]; },
+    set "is-use-dumb-mode-forcibly" (v) { d["is-use-dumb-mode-forcibly"] = !!v; },
     get "additional-query-string" () { return d["additional-query-string"]; },
     set "additional-query-string" (v) {
       // 悩んだ結果、これはassertもstringifyも行わない事にした
