@@ -1,5 +1,6 @@
 .DS_Store
-npm-debug.log
-node_modules
+/npm-debug.log
+/node_modules
 
-dist
+.deps_ok
+/dist/

@@ -15,18 +15,15 @@ http://localhost:8001/dev/dev.html
 
 ## リリース手順
 
-`make clean dist`
-
 TODO
 
 以下、リリースビルドの為の処理の一時メモ
 
-- 一番外側のビルドツールはMakefileにする
-    - これについてはddiでやっているものをベースとする
-
 (src/va5_version.jsの更新)
-(最終的には cat src/va5/*.js とかで一つのファイルにする。これがva5.jsになる)
-(gccのoptimizationsでmin化。externs対象は「va5直下の小文字で始まるエントリ」のみとなる。「_で始まるエントリ」はprivate(mungeしてok)、「大文字で始まるエントリ」はクラス名(mungeしてok)。トップレベル汚染はva5キーのみ)
+これはpackage.jsonから読んで生成するようにする
+
+`make clean dist`
+
 (これでva5.min.jsとva5.min.js.mapができる)
 
 
