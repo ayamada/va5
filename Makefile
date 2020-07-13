@@ -11,6 +11,7 @@ clean:
 .deps_ok:
 	closure-compiler --version
 	jq --version
+	node --version
 	touch .deps_ok
 
 
@@ -26,13 +27,8 @@ dist/va5.js: src/*.js src/va5/*.js
 	cat src/polyfill.js src/va5/*.js src/va5_version.js src/va5_interface.js > dist/va5.js
 
 
-dist/va5_externs.js: src/externs.js
-	mkdir -p dist
-	# TODO: なるべく自動生成したい
-	# externs対象は「va5直下の小文字で始まるエントリ」のみとなる。「_で始まるエントリ」はprivate(mungeしてok)、「大文字で始まるエントリ」はクラス名(mungeしてok)。トップレベル汚染はva5キーのみ
-	# 何で自動生成するか考える
-	# - node？va5を正確に見るならこれ一択だが…(それ以外でも、インデントで判断する事は一応可能)
-	cp src/externs.js dist/va5_externs.js
+dist/va5_externs.js: dist/va5.js
+	node -e 'var modules = require("./dist/va5.js"); console.log("var va5 = {};"); Object.keys(modules.va5).filter(function (k) { return !!k.match(/^[a-z]/); }).sort().forEach(function (k) { console.log("va5."+k+";"); });' > dist/va5_externs.js
 
 
 dist/va5.min.js: deps dist/va5.js dist/va5_externs.js
