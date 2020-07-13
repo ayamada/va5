@@ -50,12 +50,12 @@
     // TODO: このタイミングで「あまりに古すぎるモバイル端末」を除外したい。どう判定する？できればuseragentに頼らない判定をしたいが…
     //       - (chromeでない)android標準ブラウザはWebAudio非対応なので自動的に除外されるので問題ない
     //       - 問題は、WebAudioに中途半端にしか対応していない環境。これをどうにかして検出する必要がある…
-    if (false) {
-      try { ac.close(); } catch (e) { va5._logDebug(e); }
-      ac = null;
-      va5._logError("too old WebAudio, disable forcibly");
-      return false;
-    }
+    //if (false) {
+    //  try { ac.close(); } catch (e) { va5._logDebug(e); }
+    //  ac = null;
+    //  va5._logError("too old WebAudio, disable forcibly");
+    //  return false;
+    //}
 
     masterGainNode = ac.createGain();
     masterGainNode.gain.value = 1;
@@ -170,9 +170,9 @@
       cont(null);
       return;
     }
-    if (path == null) { errorEnd1(); return; }
+    if (path == null) { errorEnd1(null); return; }
     path = va5._validatePath(path);
-    if (path == null) { errorEnd1(); return; }
+    if (path == null) { errorEnd1(null); return; }
     var xhr = new XMLHttpRequest();
     xhr.open("GET", path);
     xhr.responseType = "arraybuffer";
@@ -180,17 +180,17 @@
     xhr.onload = function (e) {
       var firstLetter = (""+e.target.status).substr(0, 1);
       if ((firstLetter !== "0") && (firstLetter !== "2")) {
-        errorEnd1();
+        errorEnd1(null);
         return;
       }
       try {
         ac.decodeAudioData(xhr.response, function (buf) {
-          if (!buf) { errorEnd2(); return; }
+          if (!buf) { errorEnd2(null); return; }
           // NB: ロードに成功しても、極端に短い曲はエラー扱いにする
           //     (無限ループで過負荷になるのを避ける為)
           if (buf.duration < 0.01) {
             va5._logError(["duration too short", path]);
-            errorEnd1();
+            errorEnd1(null);
             return;
           }
           cont(device.bufToAudioSource(buf));
@@ -199,7 +199,7 @@
       }
       catch (e) {
         va5._logDebug(e);
-        errorEnd2();
+        errorEnd2(null);
         return;
       }
     };

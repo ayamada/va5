@@ -307,15 +307,14 @@
     Object.keys(chToState).forEach(function (ch) {
       var state = chToState[ch];
       result.entries++;
-      if (false) {}
-      else if (state.cancelled) { result.cancelled++; }
+      if (state.cancelled) { result.cancelled++; }
       else if (state.loading) { result.loadings++; }
       // NB: ここのカウントはあまり正確でない。ここを正確にするには
       //     _device を呼んでまだ再生中か完了しているか調べる必要がある
       else if (state.fading) { result.fadings++; }
       else if (state.playingState) { result.playings++; }
       // ↑を実装したら、ここも実装する事
-      else if (false) { result.finished++; }
+      //else if (XXX) { result.finished++; }
       else { result.unknowns++; }
     });
     return result;

@@ -107,7 +107,7 @@
     va5.init();
     if (path == null) {
       var ch = (opts && opts["channel"]) || null;
-      va5.stopSe(ch);
+      va5.stopSe(ch, null);
       return null;
     }
     else {
