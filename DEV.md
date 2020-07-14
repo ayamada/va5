@@ -71,34 +71,35 @@ TODO
         - そうしないとandroidとiOSで動作確認が取れない…
 
 
+
+- playBgmの新オプションとして「今流してるoneshotのbgmが終わったら次にこれを再生する」機能を追加
+    - bgmNext() とか、別の関数にする？
+    - ただこれ普通に設定すると、stop時にも流れてしまうのでは？
+        - stop時にはnextStateも消すようにすればよい
+            - TODO: 忘れずに実装する事！
+    - がんばって実装しても普段は使わなさそうなので、リリース後のTODOとする事に
+
+
 ## 一時メモ
 
-
-
-checkDeviceSpec(device) みたいな関数を作り、必要な関数が揃っているかチェックできるようにしたい
-とりあえず関数としてのエントリが存在するかのチェックだけでよい
-普段は実行しない、もしくはinit時のみチェックする感じで
-実際のチェック内容としては、「DumbとWebAudioで比較」みたいな感じでよい？
-これをマクロっぽい奴なしに行えるか？
-(「別にチェックリストを用意する」だと結局チェックリストの更新を忘れて死ぬ)
-
-Object.keys(va5).forEach(function (k) {
-if (va5[k] == null) { throw Error("function not found: "+k); }
-});
-これだと駄目。何故なら大部分の提供関数が、va5.init()を暗黙の内に実行する為に、
-functionでラッピングしているから。また _device のチェックにもならない。
-マクロ的に、コメントからのusage抽出と同様に組むしかないのでは？
-Makefileにて結局「nodeで読み込んでからObject.keys()で一覧を取る」みたいなコードを書いたので、これを流用すればできると思う。
-という事は、このチェックを実行するのはMakefileだという事になる。それでいいと思う
-具体的には以下のようになると思う
-var waKeys = Object.keys(va5.Devices.WebAudio).sort());
-var dumbKeys = Object.keys(va5.Devices.Dumb).sort());
-if (JSON.stringify(waKeys) !== JSON.stringify(dumbKeys)) { console.log("WebAudio", waKeys); console.log("Dumb", dumbKeys); throw Error("mismatched device-spec"); }
-エラー時にはwaKeysとdumbKeysのdumpも出したいので、ちょっと冗長だがこうする事にした
-
-Makefileに上記を実装した。足りてない関数を実装する事。
-
-
+- closure-compiler対応
+    - 一個ずつ全ファイルなめて以下の対応を行う
+        - Objectのkeyが文字列になってない箇所がないかを確認
+            - {foo: "bar"} 形式のObject表記がないか探し {"foo": "bar"} に直して回る
+        - 各stateについて、 `r.volume` みたいにアクセスしているところと `r["volume"]` みたいにアクセスしているところとが混在している
+            - interfaceから渡ってきたoptsについては、mangleしない名前になるように統一する。 state["foo"] 形式でのアクセスで統一する
+            - stateおよびdeviceに渡るoptsについては、mangleする名前になるように統一する。 state.foo 形式でのアクセスで統一する
+        - がんばってやりましょう
+            - とりあえず src/*.js はチェックした
+            - src/va5/ 配下をチェックしましょう
+                - ...
+    - @licenseを記入
+        - va5_license.js とか別に作るべきかも
+    - ファイルの結合もclosure-compilerにやらせる
+        - これにより、mapファイルが正確に出るようになる
+        - どうやって実現する？
+            - 引数を動的にファイルリストから生成するようにするしかない
+                - やり方は、gitlabのscript/fix-svgスクリプトの旧版にある
 
 
 
@@ -111,47 +112,32 @@ Makefileに上記を実装した。足りてない関数を実装する事。
         - play系optsの方も同じようにしたいのだけど、defentryを作るのがかなり難しい、ちょっと考える必要がある
 
 
-上記以外にも、play系のopts、deviceのstate、bgmのstate、seのstate、これらのkeyの名前をより分かりやすいものに変更したい(少なくとも公開前には何とかしたい)
-
-
-
-
-
-
-
-- 各stateについて、 `r.volume` みたいにアクセスしているところと `r["volume"]` みたいにアクセスしているところとが混在している
-    - gccで最適化する際に問題になる
-        - interfaceから渡ってきたoptsについては、mangle前の名前になるように統一する必要がある
-        - stateおよびdeviceに渡るoptsについては、可能ならgccで最適化されるように統一したい(それが無理ならmangle前の名前で統一したい。どちらを選ぶ場合も、どちらか片方で統一されなくてはならない)
-
-
-
-
-
-
-- https://qiita.com/zprodev/items/7fcd8335d7e8e613a01f にあるリーク対策等を組み込む事
-    - 大体は入っている筈だが漏れがあるかもしれないので、再度確認する事
-
-
-
-
-
+- 上記以外にも、play系のopts、deviceのstate、bgmのstate、seのstate、これらのkeyの名前をより分かりやすいものに変更したい(少なくとも公開前には何とかしたい)
+    - ある程度は変更したが…あとどこが分かりづらい？
 
 
 
 
 - usageはinterface.js内にコメントで書いて、それをスクリプトで抽出する？
+    - 公開前に、usageを書く方法を決める必要がある
+    - そもそも、書かないといけないのは？
+        - interface.js内にある関数
+        - config項目
+        - bgm/se/voiceのオプション引数
+        - 他には？
+            - 内部的にはdeviceのオプション引数もドキュメント化しておきたい？
+                - これは不要では？いじる時はソース見るし
+    - 方針案
+        - 別に書く。これは避けたい(ドキュメント更新忘れたりして乖離する可能性が高い)
+        - ...
+        - ...
+        - ...
+        - ...
+        - ...
 
 
 
 
-
-- playBgmの新オプションとして「今流してるoneshotのbgmが終わったら次にこれを再生する」機能を追加
-    - bgmNext() とか、別の関数にする？
-    - ただこれ普通に設定すると、stop時にも流れてしまうのでは？
-        - stop時にはnextStateも消すようにすればよい
-            - TODO: 忘れずに実装する事！
-    - がんばって実装しても基本使わなさそうなので、リリース後のTODOとする事に
 
 
 ## その他のメモ

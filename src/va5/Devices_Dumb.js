@@ -107,7 +107,7 @@
   device.resume = function (state) {};
 
 
-  device.getAudioContext = function () {
+  device.getAudioContext_ = function () {
     return null;
   };
 

@@ -4,8 +4,8 @@
   var Util = va5.Util || {}; va5.Util = Util;
 
   // NB: percentは小数を持たない扱いである事に注意
-  Util.floatToPercent = function (f) { return Math.round(f * 100); };
-  Util.percentToFloat = function (p) { return p * 0.01; };
+  Util.floatToPercent_ = function (f) { return Math.round(f * 100); };
+  Util.percentToFloat_ = function (p) { return p * 0.01; };
 
 
   function getNowByAudioContext () {
@@ -33,7 +33,7 @@
   // タイムスタンプ取得アルゴリズムは一旦決めたら変動しない必要がある
   var getNowEntity = null;
   // msecのタイムスタンプを返す。実際の日時ではないので注意
-  Util.getNowMsec = function () {
+  Util.getNowMsec_ = function () {
     if (getNowEntity) { return getNowEntity(); }
     if (va5._device && va5._device.getCurrentSec && (va5._device.getCurrentSec() != null)) {
       getNowEntity = getNowByAudioContext;

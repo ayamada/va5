@@ -83,7 +83,7 @@
       }
       return handle;
     }
-    var resumeKeys = ["touchend", "mousedown", "keydown"];
+    var resumeKeys = ["touchstart", "touchend", "mousedown", "keydown"];
     resumeKeys.forEach(function (k) {
       document.addEventListener(k, makeHandleResume(k), false);
     });

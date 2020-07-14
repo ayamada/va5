@@ -106,13 +106,13 @@
     return definition;
   }
 
-  Config.getConfig = function (k) {
+  Config.get = function (k) {
     if (!resolveDefinition(k)) { return null; }
     return valueTable[k];
   };
 
 
-  Config.setConfig = function (k, v) {
+  Config.set = function (k, v) {
     var definition = resolveDefinition(k);
     if (!definition) { return; }
     var oldValue = valueTable[k];

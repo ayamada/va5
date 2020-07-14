@@ -79,6 +79,9 @@
   function disconnectSafely (node) {
     if (node == null) { return; }
     try { node.disconnect(); } catch (e) { va5._logDebug(e); }
+    try {
+      if (node.buffer) { node.buffer = null; }
+    } catch (e) { va5._logDebug(e); }
   }
 
   function stopSafely (state) {
@@ -416,7 +419,7 @@
 
 
   // 効果音をon the flyに生成するのに必要となった
-  device.getAudioContext = function () {
+  device.getAudioContext_ = function () {
     return ac;
   };
 

@@ -119,7 +119,7 @@
     state.cancelled = false;
 
     // TODO: このfnがメモリリークの原因になる事はありえるか？ちょっと検証する必要がある…
-    va5.Cache.load(path, function (as) {
+    va5.Cache.load_(path, function (as) {
       state.loading = false;
       if (!as) {
         stopImmediatelyByCh(ch);
@@ -131,7 +131,7 @@
       }
       state.as = as;
       // ロード完了時にバックグラウンド状態なら、即座に終了させる
-      if (va5.Bgm.isInBackground() && va5.getConfig("is-pause-on-background") && !state.isAlarm) {
+      if (va5.Bgm.isInBackground_() && va5.getConfig("is-pause-on-background") && !state.isAlarm) {
         state.cancelled = true;
         stopImmediatelyByCh(ch);
         return;
@@ -204,7 +204,7 @@
   }
 
 
-  Se.playSe = function (path, opts) {
+  Se.playSe_ = function (path, opts) {
     if (path == null) { return null; }
     path = va5._validatePath(path);
     if (path == null) { return null; }
@@ -250,13 +250,13 @@
   };
 
 
-  Se.stopSe = function (ch, fadeSec) {
+  Se.stopSe_ = function (ch, fadeSec) {
     if (fadeSec == null) { fadeSec = va5.getConfig("default-se-fade-sec"); }
     fadeSec = va5._validateNumber("fadeSec", 0, fadeSec, null, 0);
     if (ch == null) {
       // chが偽値なら、全再生中chに対して再帰実行する
       Object.keys(chToState).forEach(function (ch2) {
-        Se.stopSe(ch2, fadeSec);
+        Se.stopSe_(ch2, fadeSec);
       });
       return;
     }
