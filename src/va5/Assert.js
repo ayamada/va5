@@ -62,14 +62,16 @@
 
   // 不正ならnullを返す
   Assert.validateBgmCh = function (v) {
-    // 今のところ「文字列である事」以上の制約はなし
+    // 数値なら文字列化する(hash keyにする為)
+    if ("number" === typeof v) { v = v.toString(); }
     return Assert.validateString("bgm-channel-id", v, null);
   };
 
 
   // 不正ならnullを返す
   Assert.validateVoiceCh = function (v) {
-    // 今のところ「文字列である事」以上の制約はなし
+    // 数値なら文字列化する(hash keyにする為)
+    if ("number" === typeof v) { v = v.toString(); }
     return Assert.validateString("voice-channel-id", v, null);
   };
 

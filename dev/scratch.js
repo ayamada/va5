@@ -47,10 +47,10 @@
 
 
 
-  //va5.config["is-use-dumb-mode-forcibly"] = true;
-  va5.config["is-output-error-log"] = true;
-  va5.config["is-output-debug-log"] = true;
-  //va5.config["volume-master"] = 1;
+  //va5.setConfig("is-use-dumb-mode-forcibly", true);
+  va5.setConfig("is-output-error-log", true);
+  va5.setConfig("is-output-debug-log", true);
+  //va5.setConfig("volume-master", 1);
 
   va5.init();
 

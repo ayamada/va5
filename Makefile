@@ -1,21 +1,21 @@
-.PHONY: all clean deps dist
+.PHONY: all clean deps dist check-device-spec
 
 
 all: dist
 
 
 clean:
-	-rm -f .deps_ok dist/*
+	-rm -f .*-ok dist/*
 
 
-.deps_ok:
+.deps-ok:
 	closure-compiler --version
 	jq --version
 	node --version
-	touch .deps_ok
+	touch .deps-ok
 
 
-deps: .deps_ok
+deps: .deps-ok
 
 
 src/va5_version.js: deps package.json
@@ -27,7 +27,7 @@ dist/va5.js: src/*.js src/va5/*.js
 	cat src/polyfill.js src/va5/*.js src/va5_version.js src/va5_interface.js > dist/va5.js
 
 
-dist/va5_externs.js: dist/va5.js
+dist/va5_externs.js: deps dist/va5.js
 	node -e 'var modules = require("./dist/va5.js"); console.log("var va5 = {};"); Object.keys(modules.va5).filter(function (k) { return !!k.match(/^[a-z]/); }).sort().forEach(function (k) { console.log("va5."+k+";"); });' > dist/va5_externs.js
 
 
@@ -37,11 +37,19 @@ dist/va5.min.js: deps dist/va5.js dist/va5_externs.js
 
 # --externs および --js は複数指定可能
 # --language_out ECMASCRIPT5 もしくは ECMASCRIPT5_STRICT を指定してもよい
-# 末尾とかに `closure-compiler --version` を埋め込みたい
-# (コメントアウトとかversionのみ抽出とかの問題があるので、余裕があれば)
+# TODO: 可能なら末尾に `closure-compiler --version` を埋め込みたい
+#       (コメントアウトとかversionのみ抽出とかの問題があるので、余裕があれば)
 
 
-dist: clean deps dist/va5.min.js
+.device-spec-ok: deps dist/va5.js
+	node -e 'var va5 = require("./dist/va5.js").va5; var waKeys = Object.keys(va5.Devices.WebAudio).sort(); var dumbKeys = Object.keys(va5.Devices.Dumb).sort(); if (JSON.stringify(waKeys) !== JSON.stringify(dumbKeys)) { console.log("WebAudio", waKeys); console.log("Dumb", dumbKeys); console.log("mismatched device-spec"); process.exitCode = 1; }'
+	touch .device-spec-ok
+
+
+check-device-spec: .device-spec-ok
+
+
+dist: clean deps check-device-spec dist/va5.min.js
 	# TODO: zipとかに固めたりする
 
 

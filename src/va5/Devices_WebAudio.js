@@ -61,7 +61,7 @@
     masterGainNode.gain.value = 1;
     masterGainNode.connect(ac.destination);
 
-    device.Unlock.install(ac);
+    va5.Devices_WebAudio_Unlock.install(ac);
 
     return true;
   };
@@ -433,7 +433,7 @@
 
 
   device.isInSeChatteringSec = function (state) {
-    var seChatteringSec = va5.config["se-chattering-sec"];
+    var seChatteringSec = va5.getConfig("se-chattering-sec");
     if (!seChatteringSec) { return false; }
     var now = va5.getNowMsec() / 1000;
     var diff = now - state.playStartedTimestamp;

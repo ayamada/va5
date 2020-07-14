@@ -9,7 +9,7 @@
     isInitialized = true;
 
     // 強制dumbモード対応
-    if (va5.config["is-use-dumb-mode-forcibly"]) {
+    if (va5.getConfig("is-use-dumb-mode-forcibly")) {
       va5._device = va5.Devices.Dumb;
     }
 
@@ -25,9 +25,9 @@
       va5._device.init();
     }
 
-    va5._device.setVolumeMaster(va5.config["volume-master"]);
-    va5.Se.setBaseVolume(va5.config["volume-se"], true);
-    va5.Bgm.setBaseVolume(va5.config["volume-bgm"], true);
+    va5._device.setVolumeMaster(va5.getConfig("volume-master"));
+    va5.Se.setBaseVolume(va5.getConfig("volume-se"), true);
+    va5.Bgm.setBaseVolume(va5.getConfig("volume-bgm"), true);
 
     va5.Background.startSupervise(va5.Bgm.syncBackground);
     va5.Se.bootstrapPlayingAudioChannelPoolWatcher();

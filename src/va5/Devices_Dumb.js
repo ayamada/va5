@@ -13,6 +13,9 @@
     return true;
   };
 
+  device.getCurrentSec = function () { return null; }
+
+
   device.disposeAudioSource = function (as) {
     if (as == null) { return; }
     as.disposed = true;
@@ -69,6 +72,13 @@
 
     return state;
   };
+
+
+  device.getVolume = function (state) { return state.volume; };
+
+  device.getPitch = function (state) { return state.pitch; };
+
+  device.getPan = function (state) { return state.pan; };
 
 
   device.setVolume = function (state, newVolume) {

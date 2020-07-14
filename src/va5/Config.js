@@ -3,115 +3,127 @@
   var va5 = exports.va5 || {}; exports.va5 = va5;
   var Config = va5.Config || {}; va5.Config = Config;
 
-  function deepCopy (obj) { return JSON.parse(JSON.stringify(obj)); }
 
-  // TODO: 「defmacroでdefentryを定義する」みたいな方向での対応にしたい。
-  //       (現状だとエントリ追加時にあちこちいじる必要がありミスしやすい)
-  //       ただ、Objectのgetter/setterの仕様的に、それが可能なのか微妙。
-  //       (後からgetter/setterを追加できる、古いブラウザでも動く方式はある？)
-  //       できそうなら対応したい
-  //       (おそらくpolyfill入れて対応するしかない気はするが…)
+  var definitionTable = {};
+  var valueTable = {};
 
-  // 考えた結果、va4互換のkebab-caseのkeyにする事にした。何故ならここを下手に
-  // property化してしまうとgccのoptimizationsによって短縮されてしまう為。
-  // (externs指定すればよいのだが、それもうっかり忘れて気付かないケースが
-  // ありえる。気軽にconfig項目を追加できなくなる)
-  // それなら最初からproperty指定できないkebab-caseで固定としたい。
-  // ただしlisp的な「boolean値は末尾に?をつける」のはやめて、
-  // 「boolean値は先頭にis-をつける」ようにした。
-  var initialData = {
-    "is-output-error-log": true,
-    "is-output-debug-log": false,
-    "volume-master": 0.8,
-    "volume-bgm": 0.5,
-    "volume-se": 0.5,
-    "volume-voice": 0.5,
-    "default-bgm-fade-sec": 1,
-    "default-se-fade-sec": 0,
-    "default-voice-fade-sec": 0.1,
-    "is-pause-on-background": true,
-    "is-unload-automatically-when-finished-bgm": false,
-    "se-chattering-sec": 0.05,
-    "is-use-dumb-mode-forcibly": false,
-    "additional-query-string": null // 自動ではuriエスケープされない、要注意
-  };
 
-  var d = deepCopy(initialData);
+  // validatorはsetConfig()で渡ってきたvをチェック＆整形するもの。
+  // updateHandleはsetConfig()で値が変更された時に呼び出される。
+  function defineConfig (k, initialValue, validator, updateHandle) {
+    var d = {};
+    d.validator = validator
+    d.updateHandle = updateHandle;
+    definitionTable[k] = d;
+    // 初期値のセットもここで行っておく
+    valueTable[k] = initialValue;
+  }
 
-  Config.data = {
-    get "is-output-error-log" () { return d["is-output-error-log"]; },
-    set "is-output-error-log" (v) { d["is-output-error-log"] = !!v; },
-    get "is-output-debug-log" () { return d["is-output-debug-log"]; },
-    set "is-output-debug-log" (v) { d["is-output-debug-log"] = !!v; },
-    get "volume-master" () { return d["volume-master"]; },
-    set "volume-master" (v) {
-      v = va5._validateNumber("volume-master", 0, v, 1, null);
-      if (v == null) { return; }
-      d["volume-master"] = v;
-      if (va5._device) {
-        va5._device.setVolumeMaster(d["volume-master"]);
-      }
-    },
-    get "volume-bgm" () { return d["volume-bgm"]; },
-    set "volume-bgm" (v) {
-      v = va5._validateNumber("volume-bgm", 0, v, 1, null);
-      if (v == null) { return; }
-      d["volume-bgm"] = v;
-      va5.Bgm.setBaseVolume(d["volume-bgm"]);
-    },
-    get "volume-se" () { return d["volume-se"]; },
-    set "volume-se" (v) {
-      v = va5._validateNumber("volume-se", 0, v, 1, null);
-      if (v == null) { return; }
-      d["volume-se"] = v;
-      va5.Se.setBaseVolume(d["volume-se"]);
-    },
-    get "volume-voice" () { return d["volume-voice"]; },
-    set "volume-voice" (v) {
-      v = va5._validateNumber("volume-voice", 0, v, 1, null);
-      if (v == null) { return; }
-      d["volume-voice"] = v;
-      va5.Bgm.setBaseVolumeVoice(d["volume-voice"]);
-    },
-    get "default-bgm-fade-sec" () { return d["default-bgm-fade-sec"]; },
-    set "default-bgm-fade-sec" (v) {
-      v = va5._validateNumber("default-bgm-fade-sec", 0, v, null);
-      if (v == null) { return; }
-      d["default-bgm-fade-sec"] = v;
-    },
-    get "default-se-fade-sec" () { return d["default-se-fade-sec"]; },
-    set "default-se-fade-sec" (v) {
-      v = va5._validateNumber("default-se-fade-sec", 0, v, null);
-      if (v == null) { return; }
-      d["default-se-fade-sec"] = v;
-    },
-    get "default-voice-fade-sec" () { return d["default-voice-fade-sec"]; },
-    set "default-voice-fade-sec" (v) {
-      v = va5._validateNumber("default-voice-fade-sec", 0, v, null);
-      if (v == null) { return; }
-      d["default-voice-fade-sec"] = v;
-    },
-    get "is-pause-on-background" () { return d["is-pause-on-background"]; },
-    set "is-pause-on-background" (v) { d["is-pause-on-background"] = !!v; },
-    get "is-unload-automatically-when-finished-bgm" () {
-      return d["is-unload-automatically-when-finished-bgm"];
-    },
-    set "is-unload-automatically-when-finished-bgm" (v) {
-      d["is-unload-automatically-when-finished-bgm"] = !!v;
-    },
-    get "se-chattering-sec" () { return d["se-chattering-sec"]; },
-    set "se-chattering-sec" (v) {
-      v = va5._validateNumber("se-chattering-sec", 0, v, null);
-      if (v == null) { return; }
-      d["se-chattering-sec"] = v;
-    },
-    get "is-use-dumb-mode-forcibly" () { return d["is-use-dumb-mode-forcibly"]; },
-    set "is-use-dumb-mode-forcibly" (v) { d["is-use-dumb-mode-forcibly"] = !!v; },
-    get "additional-query-string" () { return d["additional-query-string"]; },
-    set "additional-query-string" (v) {
-      // 悩んだ結果、これはassertもstringifyも行わない事にした
-      // (Date.now()のような数値である事が重要なケースが稀にあると考えて)
-      d["additional-query-string"] = v;
+
+  defineConfig("is-output-error-log", true, function (newV, oldV) {
+    return !!newV;
+  }, null);
+
+  defineConfig("is-output-debug-log", false, function (newV, oldV) {
+    return !!newV;
+  }, null);
+
+  defineConfig("volume-master", 0.8, function (newV, oldV) {
+    newV = va5._validateNumber("volume-master", 0, newV, 1, null);
+    return (newV == null) ? oldV : newV;
+  }, function (v) {
+    if (!va5._device) { return; }
+    va5._device.setVolumeMaster(v);
+  });
+
+  defineConfig("volume-bgm", 0.5, function (newV, oldV) {
+    newV = va5._validateNumber("volume-bgm", 0, newV, 1, null);
+    return (newV == null) ? oldV : newV;
+  }, function (v) {
+    va5.Bgm.setBaseVolume(v);
+  });
+
+  defineConfig("volume-se", 0.5, function (newV, oldV) {
+    newV = va5._validateNumber("volume-se", 0, newV, 1, null);
+    return (newV == null) ? oldV : newV;
+  }, function (v) {
+    va5.Se.setBaseVolume(v);
+  });
+
+  defineConfig("volume-voice", 0.5, function (newV, oldV) {
+    newV = va5._validateNumber("volume-voice", 0, newV, 1, null);
+    return (newV == null) ? oldV : newV;
+  }, function (v) {
+    va5.Bgm.setBaseVolumeVoice(v);
+  });
+
+  defineConfig("default-bgm-fade-sec", 1, function (newV, oldV) {
+    newV = va5._validateNumber("default-bgm-fade-sec", 0, newV, null);
+    return (newV == null) ? oldV : newV;
+  }, null);
+
+  defineConfig("default-se-fade-sec", 0, function (newV, oldV) {
+    newV = va5._validateNumber("default-se-fade-sec", 0, newV, null);
+    return (newV == null) ? oldV : newV;
+  }, null);
+
+  defineConfig("default-voice-fade-sec", 0.1, function (newV, oldV) {
+    newV = va5._validateNumber("default-voice-fade-sec", 0, newV, null);
+    return (newV == null) ? oldV : newV;
+  }, null);
+
+  defineConfig("is-pause-on-background", true, function (newV, oldV) {
+    return !!newV;
+  }, null);
+
+  defineConfig("is-unload-automatically-when-finished-bgm", false, function (newV, oldV) {
+    return !!newV;
+  }, null);
+
+  defineConfig("se-chattering-sec", 0.05, function (newV, oldV) {
+    newV = va5._validateNumber("se-chattering-sec", 0, newV, null);
+    return (newV == null) ? oldV : newV;
+  }, null);
+
+  defineConfig("is-use-dumb-mode-forcibly", false, function (newV, oldV) {
+    return !!newV;
+  }, null);
+
+  defineConfig("additional-query-string", null, function (newV, oldV) {
+    // 悩んだ結果、これはassertもstringifyも行わない事にした
+    // (Date.now()のような、数値である事が重要なケースが稀にあるし、
+    // nullにも「この機能を使わない」という意味がある為)
+    // なお自動ではuriエスケープされないのでその点に注意する事
+    return newV;
+  }, null);
+
+
+  function resolveDefinition (k) {
+    var definition = definitionTable[k];
+    if (!definition) {
+      va5._logError(["found unknown config key", k, ". valid keys are", Object.keys(definitionTable)]);
     }
+    return definition;
+  }
+
+  Config.getConfig = function (k) {
+    if (!resolveDefinition(k)) { return null; }
+    return valueTable[k];
   };
+
+
+  Config.setConfig = function (k, v) {
+    var definition = resolveDefinition(k);
+    if (!definition) { return; }
+    var oldValue = valueTable[k];
+    var newValue = definition.validator(v, oldValue);
+    if (oldValue == newValue) { return; }
+    valueTable[k] = newValue;
+    if (definition.updateHandle) {
+      definition.updateHandle(newValue);
+    }
+    return;
+  };
+
+
 })(this);

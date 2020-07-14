@@ -1,9 +1,7 @@
 (function(exports) {
   "use strict";
   var va5 = exports.va5 || {}; exports.va5 = va5;
-  var Devices = va5.Devices || {}; va5.Devices = Devices;
-  var device = Devices.WebAudio || {}; Devices.WebAudio = device;
-  var Unlock = device.unlock || {}; device.Unlock = Unlock;
+  var Unlock = va5.Devices_WebAudio_Unlock || {}; va5.Devices_WebAudio_Unlock = Unlock;
 
 
   // See http://ch.nicovideo.jp/indies-game/blomaga/ar1410968

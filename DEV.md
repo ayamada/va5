@@ -2,29 +2,24 @@
 
 ## 開発手順
 
-TODO
-
 ```
 python -m http.server 8001
 ```
 
-でサーバ起動、
+等でサーバ起動(他のstatic http serverコマンドでもok)、
 http://localhost:8001/dev/dev.html
-を開いて動作確認
+をブラウザから開いて動作確認
+
+
+## ビルド手順
+
+1. `package.json` 内のversion値を更新(必要なら)
+2. `make all` を実行
 
 
 ## リリース手順
 
 TODO
-
-以下、リリースビルドの為の処理の一時メモ
-
-(src/va5_version.jsの更新)
-これはpackage.jsonから読んで生成するようにする
-
-`make clean dist`
-
-(これでva5.min.jsとva5.min.js.mapができる)
 
 
 ## オンラインデモ兼リファレンスのリリースビルド生成およびデプロイ手順
@@ -39,6 +34,7 @@ TODO
 - dumbモードでの動作確認
     - 例外が投げられたりコンソールに異常が表示されなければok。音はどうやっても出ない。
     - javascriptの仕様上、該当コードを走らせないと変なところがないか分からないので、走らせる必要がある
+    - configの `is-use-dumb-mode-forcibly` をオンにすれば簡単に確認できる
 
 - ieでの動作確認
     - 同上。基本的にはdumbモードでの動作となり、音が出ないのは想定通りなのだが、意図せずに例外が投げられるのはとても困る(ieでのみ「新しいjavascript構文に対応していない」等の原因で例外が投げられる可能性があるので、個別チェックが必要)
@@ -78,47 +74,6 @@ TODO
 ## 一時メモ
 
 
-- bgmのchanに数値を渡した場合は暗黙の内に文字列化する？
-    - もうちょっと考える
-    - 以下のパターンを正しく扱える必要がある
-        - chanがnil系の場合(これは事前チェックを通しているので問題ない筈)
-        - chanが文字列の場合(当然)
-        - chanが数値系の場合(これが今回のケース。現行では不正値扱いでデフォルトの_bgmで上書きしている筈)
-        - chanがその他のObject系の場合(これは文字列化したくない)
-
-
-
-
-- play系のoptsで指定できる引数をミスしやすいのをなんとかしたい
-    - 具体的には、規定でないパラメータがあった場合は_logErrorを使って取れるパラメータの一覧を出力したい(その上で例外は投げずにfallback値での処理を続行する)
-    - これはconfigもそう。どうするかちょっと考える事
-        - configの方はおそらくva5.getConfig()/va5.setConfig()形式にするしかないと思う(getter/setterではfallback処理ができない)
-            - この場合はconfigのエントリ毎にdefmacro的なdefentryを作って対応する方向にできると思う
-        - play系optsの方も同じようにしたいのだけど、defentryを作るのがかなり難しい、ちょっと考える必要がある
-
-
-上記以外にも、play系のopts、deviceのstate、bgmのstate、seのstate、これらのkeyの名前をより分かりやすいものに変更したい(少なくとも公開前には何とかしたい)
-
-
-
-
-
-
-
-- 各stateについて、 `r.volume` みたいにアクセスしているところと `r["volume"]` みたいにアクセスしているところとが混在している
-    - gccで最適化する際に問題になる
-    - あとで考える
-        - とは言え、どっちかに統一する以外にないのでは？
-            - 統一するなら前者か？
-
-
-
-
-- https://qiita.com/zprodev/items/7fcd8335d7e8e613a01f にあるリーク対策等を組み込む事
-
-
-
-
 
 checkDeviceSpec(device) みたいな関数を作り、必要な関数が揃っているかチェックできるようにしたい
 とりあえず関数としてのエントリが存在するかのチェックだけでよい
@@ -133,6 +88,55 @@ if (va5[k] == null) { throw Error("function not found: "+k); }
 これだと駄目。何故なら大部分の提供関数が、va5.init()を暗黙の内に実行する為に、
 functionでラッピングしているから。また _device のチェックにもならない。
 マクロ的に、コメントからのusage抽出と同様に組むしかないのでは？
+Makefileにて結局「nodeで読み込んでからObject.keys()で一覧を取る」みたいなコードを書いたので、これを流用すればできると思う。
+という事は、このチェックを実行するのはMakefileだという事になる。それでいいと思う
+具体的には以下のようになると思う
+var waKeys = Object.keys(va5.Devices.WebAudio).sort());
+var dumbKeys = Object.keys(va5.Devices.Dumb).sort());
+if (JSON.stringify(waKeys) !== JSON.stringify(dumbKeys)) { console.log("WebAudio", waKeys); console.log("Dumb", dumbKeys); throw Error("mismatched device-spec"); }
+エラー時にはwaKeysとdumbKeysのdumpも出したいので、ちょっと冗長だがこうする事にした
+
+Makefileに上記を実装した。足りてない関数を実装する事。
+
+
+
+
+
+
+
+
+- play系のoptsで指定できる引数をミスしやすいのをなんとかしたい
+    - 具体的には、規定でないパラメータがあった場合は_logErrorを使って取れるパラメータの一覧を出力したい(その上で例外は投げずにfallback値での処理を続行する)
+    - configの方はgetConfig()/setConfig()での対応にする事にした
+        - play系optsの方も同じようにしたいのだけど、defentryを作るのがかなり難しい、ちょっと考える必要がある
+
+
+上記以外にも、play系のopts、deviceのstate、bgmのstate、seのstate、これらのkeyの名前をより分かりやすいものに変更したい(少なくとも公開前には何とかしたい)
+
+
+
+
+
+
+
+- 各stateについて、 `r.volume` みたいにアクセスしているところと `r["volume"]` みたいにアクセスしているところとが混在している
+    - gccで最適化する際に問題になる
+        - interfaceから渡ってきたoptsについては、mangle前の名前になるように統一する必要がある
+        - stateおよびdeviceに渡るoptsについては、可能ならgccで最適化されるように統一したい(それが無理ならmangle前の名前で統一したい。どちらを選ぶ場合も、どちらか片方で統一されなくてはならない)
+
+
+
+
+
+
+- https://qiita.com/zprodev/items/7fcd8335d7e8e613a01f にあるリーク対策等を組み込む事
+    - 大体は入っている筈だが漏れがあるかもしれないので、再度確認する事
+
+
+
+
+
+
 
 
 

@@ -131,7 +131,7 @@
       }
       state.as = as;
       // ロード完了時にバックグラウンド状態なら、即座に終了させる
-      if (va5.Bgm.isInBackground() && va5.config["is-pause-on-background"] && !state.isAlarm) {
+      if (va5.Bgm.isInBackground() && va5.getConfig("is-pause-on-background") && !state.isAlarm) {
         state.cancelled = true;
         stopImmediatelyByCh(ch);
         return;
@@ -215,7 +215,7 @@
     // Seでは必ずplayEndSecを設定する必要がある(非ループ指定)
     if (c.playEndSec == null) { c.playEndSec = 0; }
 
-    var seChatteringSec = va5.config["se-chattering-sec"];
+    var seChatteringSec = va5.getConfig("se-chattering-sec");
     if (!seChatteringSec) { return playSeTrue(path, opts, c, ch); }
     var chs = pathToChs[path];
     if (!chs) { return playSeTrue(path, opts, c, ch); }
@@ -251,7 +251,7 @@
 
 
   Se.stopSe = function (ch, fadeSec) {
-    if (fadeSec == null) { fadeSec = va5.Config["default-se-fade-sec"]; }
+    if (fadeSec == null) { fadeSec = va5.getConfig("default-se-fade-sec"); }
     fadeSec = va5._validateNumber("fadeSec", 0, fadeSec, null, 0);
     if (ch == null) {
       // chが偽値なら、全再生中chに対して再帰実行する

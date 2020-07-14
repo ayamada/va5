@@ -106,7 +106,7 @@
   };
 
   function unloadIfNeeded (path) {
-    if (!va5.config["is-unload-automatically-when-finished-bgm"]) { return; }
+    if (!va5.getConfig("is-unload-automatically-when-finished-bgm")) { return; }
     // 参照可能な全stateをなめて、このpathが1個もなければunloadする
     // (再生中や予約が1個でもあるならunloadはしない)
     va5.Cache.unloadIfUnused(path);
@@ -150,7 +150,7 @@
     if (fadeinSec) { fadeDeltaPerSec = (fadeEndVolume - fadeVolume) / fadeinSec; }
 
     var isSleep = false;
-    if (va5.config["is-pause-on-background"] && isBackgroundNow) {
+    if (va5.getConfig("is-pause-on-background") && isBackgroundNow) {
       isSleep = true;
     }
 
@@ -297,7 +297,7 @@
       return;
     }
 
-    var defaultBgmFadeSec = va5.config["default-bgm-fade-sec"];
+    var defaultBgmFadeSec = va5.getConfig("default-bgm-fade-sec");
 
     if (va5.Util.canConnect(newState.transitionMode, newState, oldState)) {
       // connectを行う。具体的には、即座に、volume, pitch, panの3パラメータの
@@ -415,7 +415,7 @@
 
 
   Bgm.stopBgm = function (ch, fadeSec) {
-    if (fadeSec == null) { fadeSec = va5.config["default-bgm-fade-sec"]; }
+    if (fadeSec == null) { fadeSec = va5.getConfig("default-bgm-fade-sec"); }
     if (ch == null) {
       Object.keys(pchToStatus).forEach(function (pch) {
         if (pch.indexOf("bgm_") !== 0) { return; }
@@ -429,7 +429,7 @@
     stopCommon(ch, pch, fadeSec);
   };
   Bgm.stopVoice = function (ch, fadeSec) {
-    if (fadeSec == null) { fadeSec = va5.config["default-voice-fade-sec"]; }
+    if (fadeSec == null) { fadeSec = va5.getConfig("default-voice-fade-sec"); }
     if (ch == null) {
       Object.keys(pchToStatus).forEach(function (pch) {
         if (pch.indexOf("voice_") !== 0) { return; }
@@ -451,7 +451,7 @@
     // まず次回実行の予約を最初にしておく
     window.setTimeout(Bgm.bootstrapPlayingAudioChannelPoolWatcher, fadeGranularityMsec);
     // バックグラウンドsleep中は完全に処理を一時停止する
-    if (va5.config["is-pause-on-background"] && isBackgroundNow) { return; }
+    if (va5.getConfig("is-pause-on-background") && isBackgroundNow) { return; }
     var now = va5.getNowMsec();
     var deltaMsec = now - watcherPrevMsec;
     watcherPrevMsec = now;
@@ -539,7 +539,7 @@
 
   function sleepBackground () {
     // "is-pause-on-background" が偽ならsleepしない
-    if (!va5.config["is-pause-on-background"]) { return; }
+    if (!va5.getConfig("is-pause-on-background")) { return; }
     // まだsleepしていないものをsleepさせる
     Object.keys(pchToStatus).forEach(function (pch) {
       var stats = pchToStatus[pch];
@@ -563,7 +563,7 @@
   }
 
   // バックグラウンド状態かどうかを返す。これは
-  // va5.config["is-pause-on-background"] を考慮しない。
+  // va5.getConfig("is-pause-on-background") を考慮しない。
   Bgm.isInBackground = function () {
     return isBackgroundNow;
   };

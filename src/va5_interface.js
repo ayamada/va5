@@ -20,7 +20,8 @@
   va5._assertEnum = va5.Assert.assertEnum;
 
 
-  va5.config = va5.Config.data;
+  va5.getConfig = va5.Config.getConfig;
+  va5.setConfig = va5.Config.setConfig;
 
 
   va5._logError = va5.Log.error;
