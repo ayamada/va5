@@ -380,7 +380,7 @@
     var loopStartSec = state.loopStartSec;
     var loopEndSec = state.loopEndSec;
     if (loopEndSec <= loopStartSec) {
-      va5._logError(["found confused loop parameters", {loopStartSec: loopStartSec, loopEndSec: loopEndSec}]);
+      va5._logError(["found confused loop parameters", {"loopStartSec": loopStartSec, "loopEndSec": loopEndSec}]);
       return null;
     }
     return loopStartSec + ((rawPos - loopStartSec) % (loopEndSec - loopStartSec));
@@ -419,7 +419,7 @@
 
 
   // 効果音をon the flyに生成するのに必要となった
-  device.getAudioContext_ = function () {
+  device.getAudioContext = function () {
     return ac;
   };
 

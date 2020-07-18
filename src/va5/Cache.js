@@ -45,17 +45,17 @@
   // 大雑把には、
   // A(初期状態/unload)、B(ロード待ち)、C(ロード中)、D(ロード完了)
   // という区分になる。
-  // - Cache.isLoading_(path) => B/C系なら真
-  // - Cache.isLoaded_(path) => D/D2なら真(※D3はA2扱い、要注意！)
-  // - Cache.isError_(path) => D2の時のみ真
-  // - Cache.isCancelled_(path) => A系なら真
+  // - Cache.isLoading(path) => B/C系なら真
+  // - Cache.isLoaded(path) => D/D2なら真(※D3はA2扱い、要注意！)
+  // - Cache.isError(path) => D2の時のみ真
+  // - Cache.isCancelled(path) => A系なら真
 
 
-  Cache.isLoading_ = function (path) {
+  Cache.isLoading = function (path) {
     // キュー内にあればローディング待ちもしくはローディング中
     for (var i = 0; i < preloadRequestQueue.length; i++) {
       var entry = preloadRequestQueue[i];
-      if ((path === entry.path) && !entry.isCancelled_) {
+      if ((path === entry.path) && !entry.isCancelled) {
         return true;
       }
     }
@@ -63,24 +63,23 @@
   };
 
 
-  Cache.isLoaded_ = function (path) {
+  Cache.isLoaded = function (path) {
     // loadedAudioSourceTable内にエントリがあれば、ロードは完了している
     // (ただし成功か失敗かは分からない)
     return !!(path in loadedAudioSourceTable);
   };
 
 
-  Cache.isError_ = function (path) {
+  Cache.isError = function (path) {
     // ロード完了かつasなしなら、ロードはエラー終了した
-    return !!(Cache.isLoaded_(path) && !loadedAudioSourceTable[path]);
+    return !!(Cache.isLoaded(path) && !loadedAudioSourceTable[path]);
   };
 
 
-  Cache.isCancelled_ = function (path) {
+  Cache.isCancelled = function (path) {
     // ローディング中でもロード完了でもないならキャンセルもしくはunloadされた。
-    // この判定は実はAにも相当するのだが、とりあえず問題ないのではと思う
-    // (Aを判定できる関数は提供していないので)
-    return !!(!Cache.isLoading_(path) && !Cache.isLoaded_(path));
+    // この判定は実はAにも相当する。問題はない筈だが一応注意
+    return !!(!Cache.isLoading(path) && !Cache.isLoaded(path));
   };
 
 
@@ -88,7 +87,7 @@
   function cancelLoading (path) {
     preloadRequestQueue.forEach(function (entry) {
       if (path === entry.path) {
-        entry.isCancelled_ = true;
+        entry.isCancelled = true;
       }
       // NB: ここでは即座にキューを消化してはならない！
       //     キューは必ず順番に処理していく必要がある。
@@ -102,7 +101,7 @@
   Cache.getAllPaths = function () {
     var loadedPaths = Object.keys(loadedAudioSourceTable);
     var loadingPaths = preloadRequestQueue.filter(function (entry) {
-      return !entry.isCancelled_;
+      return !entry.isCancelled;
     }).map(function (entry) {
       return entry.path;
     }).filter(function (path) {
@@ -115,12 +114,12 @@
   // NB: まだ鳴っている最中に呼ばないようにする事。
   //     必要なら、unloadを呼ぶ前にこのpathに対する全ての再生を
   //     完全停止させておく事！
-  Cache.unload_ = function (path) {
+  Cache.unload = function (path) {
     if (path == null) { return; }
     path = va5._validatePath(path);
     if (path == null) { return; }
     cancelLoading(path);
-    if (Cache.isLoaded_(path)) {
+    if (Cache.isLoaded(path)) {
       var as = loadedAudioSourceTable[path];
       va5._device.disposeAudioSource(as);
       delete loadedAudioSourceTable[path];
@@ -128,10 +127,10 @@
   };
 
 
-  Cache.unloadIfUnused_ = function (path) {
+  Cache.unloadIfUnused = function (path) {
     if (va5.Se.hasReference(path)) { return; }
     if (va5.Bgm.hasReference(path)) { return; }
-    Cache.unload_(path);
+    Cache.unload(path);
   };
 
 
@@ -146,12 +145,12 @@
       var entry = preloadRequestQueue[0];
       var path = entry.path;
       var cont = entry.cont;
-      if (entry.isCancelled_) {
+      if (entry.isCancelled) {
         preloadRequestQueue.shift();
         if (cont) { cont(null); }
         continue;
       }
-      if (Cache.isLoaded_(path)) {
+      if (Cache.isLoaded(path)) {
         preloadRequestQueue.shift();
         if (cont) { cont(loadedAudioSourceTable[path]); }
         continue;
@@ -167,16 +166,16 @@
   }
 
 
-  Cache.loadBuf_ = function (buf) {
+  Cache.loadBuf = function (buf) {
     if (buf == null) { return; }
     while (true) {
       // NB: 現状だとdigestを取れないので乱数で生成するだけとした
       //var digest = ...
       //var path = bufKeyPrefix + digest;
-      //if (Cache.isLoaded_(path)) { return path; }
+      //if (Cache.isLoaded(path)) { return path; }
       var digest = Math.random().toString(32).slice(2);
       var path = bufKeyPrefix + digest;
-      if (Cache.isLoaded_(path)) { continue; } // 衝突したら作り直す
+      if (Cache.isLoaded(path)) { continue; } // 衝突したら作り直す
       var as = va5._device.bufToAudioSource(buf);
       loadedAudioSourceTable[path] = as;
       return path;
@@ -192,7 +191,7 @@
   // もう一つは、unloadによってキャンセルされた場合。
   // 通常loadはこの後にplayする為に実行するので、
   // どちらの場合であってもplayをスキップすればよい。
-  Cache.load_ = function (path, cont) {
+  Cache.load = function (path, cont) {
     if (path == null) { cont(null); return; }
     path = va5._validatePath(path);
     if (path == null) { cont(null); return; }
@@ -206,7 +205,7 @@
     var entry = {
       path: path,
       cont: cont,
-      isCancelled_: false
+      isCancelled: false
     };
     // キャンセル要求が間に入る事があるので、ロード済であっても必ず
     // 一旦キューに入れてから処理する
@@ -216,7 +215,7 @@
   };
 
 
-  Cache.getDuration_ = function (path) {
+  Cache.getDuration = function (path) {
     if (path == null) { return null; }
     var as = loadedAudioSourceTable[path];
     if (!as) { return null; }
@@ -224,7 +223,7 @@
   };
 
 
-  Cache.getSampleRate_ = function (path) {
+  Cache.getSampleRate = function (path) {
     if (path == null) { return null; }
     var as = loadedAudioSourceTable[path];
     if (!as) { return null; }

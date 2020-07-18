@@ -119,7 +119,7 @@
     state.cancelled = false;
 
     // TODO: このfnがメモリリークの原因になる事はありえるか？ちょっと検証する必要がある…
-    va5.Cache.load_(path, function (as) {
+    va5.Cache.load(path, function (as) {
       state.loading = false;
       if (!as) {
         stopImmediatelyByCh(ch);
@@ -131,7 +131,7 @@
       }
       state.as = as;
       // ロード完了時にバックグラウンド状態なら、即座に終了させる
-      if (va5.Bgm.isInBackground_() && va5.getConfig("is-pause-on-background") && !state.isAlarm) {
+      if (va5.Bgm.isInBackground() && va5.getConfig("is-pause-on-background") && !state.isAlarm) {
         state.cancelled = true;
         stopImmediatelyByCh(ch);
         return;
@@ -178,9 +178,10 @@
     state.pitch = newPitch;
     state.pan = newPan;
     // NB: load完了後stateのmergeは上記だけでよいが、
-    //     load完了前mergeではplay/loop系パラメータの上書きも必要となる
-    //     (load完了前はtrue系パラメータはまだ算出されていないので、
-    //     そちらをいじる必要はない)
+    //     load完了前mergeではplay/loop系パラメータの上書きも必要となる。
+    //     なおtrue系パラメータをいじる必要はない
+    //     (load完了前であればtrue系パラメータはまだ算出されていないし、
+    //     load完了後であれば上書きしないのでtrue系パラメータの変動もない)
     if (state.loading) {
       state.loopStartSec = c.loopStartSec;
       state.loopStart = c.loopStart;
@@ -204,7 +205,7 @@
   }
 
 
-  Se.playSe_ = function (path, opts) {
+  Se.playSe = function (path, opts) {
     if (path == null) { return null; }
     path = va5._validatePath(path);
     if (path == null) { return null; }
@@ -213,7 +214,8 @@
     var ch = va5._validateSeCh(opts["channel"] || makeNewChannelId());
     var c = va5.Util.parsePlayCommonOpts(path, opts);
     // Seでは必ずplayEndSecを設定する必要がある(非ループ指定)
-    if (c.playEndSec == null) { c.playEndSec = 0; }
+    if (!va5.Util.hasPlayEnd(c)) { c.playEndSec = 0; }
+
 
     var seChatteringSec = va5.getConfig("se-chattering-sec");
     if (!seChatteringSec) { return playSeTrue(path, opts, c, ch); }
@@ -236,7 +238,7 @@
     c.path = path;
     // TODO: Seの方もBgm同様にtransitionModeを渡せるようにしてもよい。
     //       ただしデフォルトはconnectIfSameになるようにしたい。
-    //       (それがちょっと面倒なので現状はこうしている)
+    //       (それが面倒なので現状は常にconnectIfSameで判定している)
     if (!va5.Util.canConnect("connectIfSame", lastState, c, true)) { return playSeTrue(path, opts, c, ch); }
     if (!va5._device.isInSeChatteringSec(lastState.playingState)) { return playSeTrue(path, opts, c, ch); }
     // chatterしていた。mergeを行う
@@ -250,13 +252,13 @@
   };
 
 
-  Se.stopSe_ = function (ch, fadeSec) {
+  Se.stopSe = function (ch, fadeSec) {
     if (fadeSec == null) { fadeSec = va5.getConfig("default-se-fade-sec"); }
     fadeSec = va5._validateNumber("fadeSec", 0, fadeSec, null, 0);
     if (ch == null) {
       // chが偽値なら、全再生中chに対して再帰実行する
       Object.keys(chToState).forEach(function (ch2) {
-        Se.stopSe_(ch2, fadeSec);
+        Se.stopSe(ch2, fadeSec);
       });
       return;
     }
@@ -296,26 +298,26 @@
   // デバッグ用情報を取得する機能
   Se.stats = function () {
     var result = {
-      entries: 0,
-      loadings: 0,
-      playings: 0,
-      fadings: 0,
-      cancelled: 0,
-      finished: 0,
-      unknowns: 0,
+      "entries": 0,
+      "loadings": 0,
+      "playings": 0,
+      "fadings": 0,
+      "cancelled": 0,
+      "finished": 0,
+      "unknowns": 0,
     };
     Object.keys(chToState).forEach(function (ch) {
       var state = chToState[ch];
-      result.entries++;
-      if (state.cancelled) { result.cancelled++; }
-      else if (state.loading) { result.loadings++; }
+      result["entries"]++;
+      if (state.cancelled) { result["cancelled"]++; }
+      else if (state.loading) { result["loadings"]++; }
       // NB: ここのカウントはあまり正確でない。ここを正確にするには
       //     _device を呼んでまだ再生中か完了しているか調べる必要がある
-      else if (state.fading) { result.fadings++; }
-      else if (state.playingState) { result.playings++; }
+      else if (state.fading) { result["fadings"]++; }
+      else if (state.playingState) { result["playings"]++; }
       // ↑を実装したら、ここも実装する事
-      //else if (XXX) { result.finished++; }
-      else { result.unknowns++; }
+      //else if (XXX) { result["finished"]++; }
+      else { result["unknowns"]++; }
     });
     return result;
   };

@@ -109,7 +109,7 @@
     if (!va5.getConfig("is-unload-automatically-when-finished-bgm")) { return; }
     // 参照可能な全stateをなめて、このpathが1個もなければunloadする
     // (再生中や予約が1個でもあるならunloadはしない)
-    va5.Cache.unloadIfUnused_(path);
+    va5.Cache.unloadIfUnused(path);
   }
 
   // これは再生即停止も兼ねている
@@ -117,7 +117,7 @@
     if (!state) { return; }
     if (state.disposed) { unloadIfNeeded(state.path); return; }
     state.disposed = true;
-    state.isCancelled_ = true;
+    state.isCancelled = true;
     state.isSleep = null;
     if (!state.playingState) { unloadIfNeeded(state.path); return; }
     va5._device.disposePlayingState(state.playingState);
@@ -128,10 +128,10 @@
 
   // NB: これは「無音から新たに再生する」向けのstateになっている。
   //     そうでない場合は生成後に更に調整が必要となる。
-  //     また isLoading_ がtrueで開始される事にも注意。
-  //     (通常はこの後すぐに va5.Cache.load_() が実行されるので
+  //     また isLoading がtrueで開始される事にも注意。
+  //     (通常はこの後すぐに va5.Cache.load() が実行されるので
   //     これで問題ないのだが、そうではない場合は注意する事。
-  //     なおnextStateに入る場合もisLoading_=trueで問題ない想定。
+  //     なおnextStateに入る場合もisLoading=trueで問題ない想定。
   //     ただしプリロードを事前に走らせておく事が望ましい。)
   function makeInitialState (isVoice, path, opts) {
     opts = opts || {};
@@ -166,9 +166,9 @@
 
     state.as = null;
     state.playingState = null;
-    state.isLoading_ = true;
+    state.isLoading = true;
     state.isSleep = isSleep;
-    state.isCancelled_ = false;
+    state.isCancelled = false;
 
     return state;
   }
@@ -196,10 +196,10 @@
   //     (だからpchToStatus[pch][0]とstateが同一かどうかのチェックが必要)
   // TODO: 関数名がちょっと分かりづらい。もっと良い名前はあるか？
   function playByState (pch, state) {
-    va5.Cache.load_(state.path, function (as) {
-      state.isLoading_ = false;
+    va5.Cache.load(state.path, function (as) {
+      state.isLoading = false;
       var stats = pchToStatus[pch];
-      if (!as || state.isCancelled_) {
+      if (!as || state.isCancelled) {
         disposeState(state);
         if (!stats || (state !== stats[0])) { return; }
         stats[0] = stats[1];
@@ -259,7 +259,7 @@
 
     // oldStateが存在していない場合は即座に再生開始できる
     if (!oldState) {
-      if (stats[1]) { stats[1].isCancelled_ = true; }
+      if (stats[1]) { stats[1].isCancelled = true; }
       stats[1] = null;
       stats[0] = newState;
       playByState(pch, newState);
@@ -289,7 +289,7 @@
 
     // 上記での判定が「即座対応」なら、それを行って完了
     if (canStopOldStateImmediately) {
-      if (stats[1]) { stats[1].isCancelled_ = true; }
+      if (stats[1]) { stats[1].isCancelled = true; }
       stats[1] = null;
       disposeState(oldState);
       stats[0] = newState;
@@ -319,10 +319,10 @@
       }
       stats[0] = oldState;
       // 次の曲の予約は破棄する
-      if (stats[1]) { stats[1].isCancelled_ = true; }
+      if (stats[1]) { stats[1].isCancelled = true; }
       stats[1] = null;
       // newsStateも破棄する(oldStateにmergeされたので)
-      newState.isCancelled_ = true;
+      newState.isCancelled = true;
       disposeState(newState);
       return;
     }
@@ -333,19 +333,19 @@
     oldState.fadeEndVolume = 0;
     oldState.fadeDeltaPerSec = (-1 / (defaultBgmFadeSec || 0.01));
     // 古いnextStateがあるならキャンセルしておく必要がある
-    if (stats[1]) { stats[1].isCancelled_ = true; }
+    if (stats[1]) { stats[1].isCancelled = true; }
     // newStateはnextStateへと突っ込む
     stats[1] = newState;
     // 未ロードの場合、先行ロードだけ走らせておく
-    if (va5.Cache.isCancelled_(newState.path)) {
-      va5.Cache.load_(newState.path, function (as) {});
+    if (va5.Cache.isCancelled(newState.path)) {
+      va5.Cache.load(newState.path, function (as) {});
     }
   }
 
-  Bgm.playBgm_ = function (path, opts) {
+  Bgm.playBgm = function (path, opts) {
     return playCommon(false, path, opts);
   };
-  Bgm.playVoice_ = function (path, opts) {
+  Bgm.playVoice = function (path, opts) {
     return playCommon(true, path, opts);
   };
 
@@ -414,13 +414,13 @@
   }
 
 
-  Bgm.stopBgm_ = function (ch, fadeSec) {
+  Bgm.stopBgm = function (ch, fadeSec) {
     if (fadeSec == null) { fadeSec = va5.getConfig("default-bgm-fade-sec"); }
     if (ch == null) {
       Object.keys(pchToStatus).forEach(function (pch) {
         if (pch.indexOf("bgm_") !== 0) { return; }
         var ch2 = pch.replace(/^bgm_/, "");
-        Bgm.stopBgm_(ch2, fadeSec);
+        Bgm.stopBgm(ch2, fadeSec);
       });
       return;
     }
@@ -428,13 +428,13 @@
     var pch = "bgm_" + ch;
     stopCommon(ch, pch, fadeSec);
   };
-  Bgm.stopVoice_ = function (ch, fadeSec) {
+  Bgm.stopVoice = function (ch, fadeSec) {
     if (fadeSec == null) { fadeSec = va5.getConfig("default-voice-fade-sec"); }
     if (ch == null) {
       Object.keys(pchToStatus).forEach(function (pch) {
         if (pch.indexOf("voice_") !== 0) { return; }
         var ch2 = pch.replace(/^voice_/, "");
-        Bgm.stopVoice_(ch2, fadeSec);
+        Bgm.stopVoice(ch2, fadeSec);
       });
       return;
     }
@@ -477,12 +477,12 @@
         continue;
       }
       // キャンセルされているなら次の曲へ
-      if (state.isCancelled_) {
+      if (state.isCancelled) {
         stopStateAndPlayNextState(pch);
         continue;
       }
       // ローディング中なら残す
-      if (state.isLoading_) { continue; }
+      if (state.isLoading) { continue; }
       // 再生終了しているなら次の曲へ
       if (!state.playingState) {
         stopStateAndPlayNextState(pch);
@@ -564,7 +564,7 @@
 
   // バックグラウンド状態かどうかを返す。これは
   // va5.getConfig("is-pause-on-background") を考慮しない。
-  Bgm.isInBackground_ = function () {
+  Bgm.isInBackground = function () {
     return isBackgroundNow;
   };
 
@@ -581,7 +581,7 @@
 
 
   // NB: これはbgm専用。voiceの対応はなし
-  Bgm.getBgmPos_ = function (ch) {
+  Bgm.getBgmPos = function (ch) {
     if (ch == null) { ch = defaultBgmCh; }
     var pch = "bgm_" + ch;
     var stats = pchToStatus[pch];

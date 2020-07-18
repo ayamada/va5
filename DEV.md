@@ -29,6 +29,13 @@ TODO
 そもそも、どういう奴にするのかから考える必要が…
 
 
+## FAQ
+
+- va5.min.js を再度closure-compilerにかけたら動かなくなった
+    - va5.min.js は既にclosure-compilerによって最適化されているので、再度closure-compilerにかけてもそれ以上良くなる事はないと思います。
+    - それでも再度closure-compilerにかけたい場合は、 va5_externs.js の他に src/internal_externs.js もexterns指定してください。これで通る筈です。
+
+
 ## デバッグしづらい部分の動作確認について
 
 - dumbモードでの動作確認
@@ -82,24 +89,14 @@ TODO
 
 ## 一時メモ
 
+
 - closure-compiler対応
-    - 一個ずつ全ファイルなめて以下の対応を行う
-        - Objectのkeyが文字列になってない箇所がないかを確認
-            - {foo: "bar"} 形式のObject表記がないか探し {"foo": "bar"} に直して回る
-        - 各stateについて、 `r.volume` みたいにアクセスしているところと `r["volume"]` みたいにアクセスしているところとが混在している
-            - interfaceから渡ってきたoptsについては、mangleしない名前になるように統一する。 state["foo"] 形式でのアクセスで統一する
-            - stateおよびdeviceに渡るoptsについては、mangleする名前になるように統一する。 state.foo 形式でのアクセスで統一する
-        - がんばってやりましょう
-            - とりあえず src/*.js はチェックした
-            - src/va5/ 配下をチェックしましょう
-                - ...
-    - @licenseを記入
-        - va5_license.js とか別に作るべきかも
     - ファイルの結合もclosure-compilerにやらせる
         - これにより、mapファイルが正確に出るようになる
         - どうやって実現する？
             - 引数を動的にファイルリストから生成するようにするしかない
                 - やり方は、gitlabのscript/fix-svgスクリプトの旧版にある
+        - これに伴い、 va5.js の提供はやめる。 va5.min.js のみの提供とする
 
 
 

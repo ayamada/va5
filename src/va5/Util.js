@@ -4,8 +4,8 @@
   var Util = va5.Util || {}; va5.Util = Util;
 
   // NB: percentは小数を持たない扱いである事に注意
-  Util.floatToPercent_ = function (f) { return Math.round(f * 100); };
-  Util.percentToFloat_ = function (p) { return p * 0.01; };
+  Util.floatToPercent = function (f) { return Math.round(f * 100); };
+  Util.percentToFloat = function (p) { return p * 0.01; };
 
 
   function getNowByAudioContext () {
@@ -31,52 +31,52 @@
   }
 
   // タイムスタンプ取得アルゴリズムは一旦決めたら変動しない必要がある
-  var getNowEntity = null;
+  var getNowFn = null;
   // msecのタイムスタンプを返す。実際の日時ではないので注意
-  Util.getNowMsec_ = function () {
-    if (getNowEntity) { return getNowEntity(); }
+  Util.getNowMsec = function () {
+    if (getNowFn) { return getNowFn(); }
     if (va5._device && va5._device.getCurrentSec && (va5._device.getCurrentSec() != null)) {
-      getNowEntity = getNowByAudioContext;
+      getNowFn = getNowByAudioContext;
       va5._logDebug("getNowMsec function determined to getNowByAudioContext");
     }
     else if (window.performance && window.performance.now) {
-      getNowEntity = getNowByPerformanceNow;
+      getNowFn = getNowByPerformanceNow;
       va5._logDebug("getNowMsec function determined to getNowByPerformanceNow");
     }
     else {
-      getNowEntity = getNowByDateNow;
+      getNowFn = getNowByDateNow;
       va5._logDebug("getNowMsec function determined to getNowByDateNow");
     }
-    return getNowEntity();
+    return getNowFn();
   };
 
 
   // NB: これは本来Devices_WebAudio内に含めるべき内容だが、
   //     Devices_Dumbと共通にしたいので、ここに置いている
   Util.createDeviceState = function (as, opts, duration) {
-    var volume = opts["volume"]; if (volume == null) { volume = 1; }
+    var volume = opts.volume; if (volume == null) { volume = 1; }
     volume = va5._validateNumber("volume", 0, volume, 10, 0);
-    var pitch = va5._validateNumber("pitch", 0.1, opts["pitch"]||1, 10, 1);
-    var pan = va5._validateNumber("pan", -1, opts["pan"]||0, 1, 0)
+    var pitch = va5._validateNumber("pitch", 0.1, opts.pitch||1, 10, 1);
+    var pan = va5._validateNumber("pan", -1, opts.pan||0, 1, 0)
     // NB: loopStartSec=nullの時はloopStartSec=0とする
-    var loopStartSec = va5._validateNumber("loopStartSec", 0, opts["loopStartSec"]||0, null, 0);
+    var loopStartSec = va5._validateNumber("loopStartSec", 0, opts.loopStartSec||0, null, 0);
     // NB: loopEndSec=nullの時はloopEndSec=durationとする
-    var loopEndSec = va5._validateNumber("loopEndSec", null, opts["loopEndSec"]||duration, null, duration);
+    var loopEndSec = va5._validateNumber("loopEndSec", null, opts.loopEndSec||duration, null, duration);
     // NB: playStartSec=nullの時はplayStartSec=loopStartSecとする
-    var playStartSec = opts["playStartSec"];
+    var playStartSec = opts.playStartSec;
     if (playStartSec == null) { playStartSec = loopStartSec; }
     playStartSec = va5._validateNumber("playStartSec", 0, playStartSec, null, 0);
     // NB: playEndSec=nullの時はplayEndSec=nullを維持する
-    var playEndSec = opts["playEndSec"];
+    var playEndSec = opts.playEndSec;
     if (playEndSec != null) { playEndSec = va5._validateNumber("playEndSec", playStartSec, playEndSec, null, duration); }
-    var isSleepingStart = !!opts["isSleepingStart"];
+    var isSleepingStart = !!opts.isSleepingStart;
 
     var isNeedFinishImmediately = (playEndSec != null) && (playEndSec < playStartSec);
     // すぐ終わらせるので、強制的にisSleepingStartと同様の処理を行わせる
     if (isNeedFinishImmediately) { isSleepingStart = true; }
 
     if ((playEndSec == null) && (loopEndSec <= loopStartSec)) {
-      va5._logError(["found confused loop parameters", {loopStartSec: loopStartSec, loopEndSec: loopEndSec}]);
+      va5._logError(["found confused loop parameters", {"loopStartSec": loopStartSec, "loopEndSec": loopEndSec}]);
       loopStartSec = 0;
       loopEndSec = duration;
     }
@@ -121,8 +121,7 @@
 
   // playEndSecTrue類が0やマイナスの時は、
   // duration側から動かした値にする必要がある
-  function adjustEndSecTrue (state, key) {
-    var t = state[key];
+  function adjustEndSecTrue (t, state) {
     if ((t != null) && (t <= 0)) {
       var duration = va5._device.audioSourceToDuration(state.as);
       if (0 < duration) {
@@ -134,7 +133,7 @@
         t = 1;
       }
     }
-    state[key] = t;
+    return t;
   }
 
 
@@ -146,11 +145,14 @@
   function parseAndApplyPathParameter (path) {
     var r = {};
     if (path == null) { return r; }
+    r.path = path;
     // - キーのセット一覧
-    //     - LOOPSTART, LOOPEND or LOOPLENGTH
-    //     - PLAYSTART, PLAYEND or PLAYLENGTH
-    //     - LOOPSTARTSEC, LOOPENDSEC or LOOPLENGTHSEC
-    //     - PLAYSTARTSEC, PLAYENDSEC or PLAYLENGTHSEC
+    //     - LOOPSTART or LOOPSTARTSEC
+    //     - LOOPEND or LOOPENDSEC or LOOPLENGTH or LOOPLENGTHSEC
+    //     - PLAYSTART or PLAYSTARTSEC
+    //     - PLAYEND or PLAYENDSEC or PLAYLENGTH or PLAYLENGTHSEC
+    //     - 上記の省略形 LS LE LL PS PE PL LSS LES LLS PSS PES PLS
+    //     - 特殊ショートカット NL ME
     // - 実例
     //     - foo__LOOPSTART0_LOOPEND99600_PLAYSTART44800.m4a
     //     - foo__LOOPSTARTSEC0.5_LOOPENDSEC2.0_PLAYSTARTSEC1.0.m4a
@@ -178,8 +180,8 @@
     va5._logDebug(["parse params from path", path, params]);
 
     // 特殊ショートカット
-    if ("NL" in params) { r["playEnd"] = 0; } // NO LOOP
-    if ("ME" in params) { r["playEnd"] = 0; } // MUSIC EFFECT(ツクール呼称)
+    if ("NL" in params) { r["playEndSec"] = 0; } // NO LOOP
+    if ("ME" in params) { r["playEndSec"] = 0; } // MUSIC EFFECT(ツクール呼称)
 
     // ショートカット
     setP(r, "loopStartSec", params, "LSS");
@@ -225,18 +227,19 @@
     r.pitch = va5._validateNumber("pitch", 0.1, opts["pitch"]||1, 10, 1);
     r.pan = va5._validateNumber("pan", -1, opts["pan"]||0, 1, 0);
 
-    if (r.loopStartSec == null) { r.loopStartSec = opts["loopStartSec"]; }
-    if (r.loopEndSec == null) { r.loopEndSec = opts["loopEndSec"]; }
-    if (r.loopLengthSec == null) { r.loopLengthSec = opts["loopLengthSec"]; }
-    if (r.loopStart == null) { r.loopStart = opts["loopStart"]; }
-    if (r.loopEnd == null) { r.loopEnd = opts["loopEnd"]; }
-    if (r.loopLength == null) { r.loopLength = opts["loopLength"]; }
-    if (r.playStartSec == null) { r.playStartSec = opts["playStartSec"]; }
-    if (r.playEndSec == null) { r.playEndSec = opts["playEndSec"]; }
-    if (r.playLengthSec == null) { r.playLengthSec = opts["playLengthSec"]; }
-    if (r.playStart == null) { r.playStart = opts["playStart"]; }
-    if (r.playEnd == null) { r.playEnd = opts["playEnd"]; }
-    if (r.playLength == null) { r.playLength = opts["playLength"]; }
+    // pathとoptsの両方に指定があった場合はoptsの方が優先される
+    if (opts["loopStartSec"] != null) { r.loopStartSec = opts["loopStartSec"]; }
+    if (opts["loopEndSec"] != null) { r.loopEndSec = opts["loopEndSec"]; }
+    if (opts["loopLengthSec"] != null) { r.loopLengthSec = opts["loopLengthSec"]; }
+    if (opts["loopStart"] != null) { r.loopStart = opts["loopStart"]; }
+    if (opts["loopEnd"] != null) { r.loopEnd = opts["loopEnd"]; }
+    if (opts["loopLength"] != null) { r.loopLength = opts["loopLength"]; }
+    if (opts["playStartSec"] != null) { r.playStartSec = opts["playStartSec"]; }
+    if (opts["playEndSec"] != null) { r.playEndSec = opts["playEndSec"]; }
+    if (opts["playLengthSec"] != null) { r.playLengthSec = opts["playLengthSec"]; }
+    if (opts["playStart"] != null) { r.playStart = opts["playStart"]; }
+    if (opts["playEnd"] != null) { r.playEnd = opts["playEnd"]; }
+    if (opts["playLength"] != null) { r.playLength = opts["playLength"]; }
 
     // どちらを採用するのか判定し、フラグに持つ。優先順は以下の通り
     // - どちらも存在するならSecを優先
@@ -308,15 +311,15 @@
     r.playStartSecTrue = playStartSec;
     r.playEndSecTrue = playEndSec;
     // loopEndSecTrue/playEndSecTrueは範囲内補正が必要
-    adjustEndSecTrue(r, "loopEndSecTrue");
-    adjustEndSecTrue(r, "playEndSecTrue");
+    r.loopEndSecTrue = adjustEndSecTrue(r.loopEndSecTrue, r);
+    r.playEndSecTrue = adjustEndSecTrue(r.playEndSecTrue, r);
 
     return r;
   };
 
 
-  // Bgm系にて、load前にplayEnd系パラメータの有無やloopEnd系パラメータの有無を
-  // 確認したいケースがある。それらを調べる関数を用意しておく
+  // seおよびvoiceにて、load前にplayEnd系パラメータの有無を確認したいケースが
+  // ある。それらを調べる関数を用意しておく
   Util.hasPlayEnd = function (state) {
     if (state.playStartSecTrue != null) {
       // true版のstartが存在するなら、true版のendで判定できる
@@ -335,6 +338,7 @@
     // Endパラメータはどこにもなかった
     return false;
   };
+  // こっちは今のところ必要ない想定だが一応用意
   Util.hasLoopEnd = function (state) {
     if (state.loopStartSecTrue != null) {
       // true版のstartが存在するなら、true版のendで判定できる

@@ -11,13 +11,16 @@
   // validatorはsetConfig()で渡ってきたvをチェック＆整形するもの。
   // updateHandleはsetConfig()で値が変更された時に呼び出される。
   function defineConfig (k, initialValue, validator, updateHandle) {
-    var d = {};
-    d.validator = validator
-    d.updateHandle = updateHandle;
-    definitionTable[k] = d;
+    definitionTable[k] = {
+      validator: validator,
+      updateHandle: updateHandle
+    };
     // 初期値のセットもここで行っておく
     valueTable[k] = initialValue;
   }
+
+
+  // ----------------------------------------------------------------
 
 
   defineConfig("is-output-error-log", true, function (newV, oldV) {
@@ -96,6 +99,9 @@
     // なお自動ではuriエスケープされないのでその点に注意する事
     return newV;
   }, null);
+
+
+  // ----------------------------------------------------------------
 
 
   function resolveDefinition (k) {

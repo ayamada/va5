@@ -4,7 +4,7 @@
   var Init = va5.Init || {}; va5.Init = Init;
 
   var isInitialized = false;
-  Init.init_ = function () {
+  Init.init = function () {
     if (isInitialized) { return; }
     isInitialized = true;
 

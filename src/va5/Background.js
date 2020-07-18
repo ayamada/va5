@@ -18,7 +18,7 @@
     changedVisibility(null);
   };
 
-  Background.isInBackground_ = function () {
+  Background.isInBackground = function () {
     return isInactiveNow;
   };
 

@@ -31,9 +31,9 @@ dist/va5_externs.js: deps dist/va5.js
 	node -e 'var modules = require("./dist/va5.js"); console.log("var va5 = {};"); Object.keys(modules.va5).filter(function (k) { return !!k.match(/^[a-z]/); }).sort().forEach(function (k) { console.log("va5."+k+";"); });' > dist/va5_externs.js
 
 
-dist/va5.min.js: deps dist/va5.js dist/va5_externs.js
+dist/va5.min.js: deps dist/va5.js dist/va5_externs.js src/internal_externs.js
 	mkdir -p dist
-	closure-compiler --charset UTF-8 --compilation_level ADVANCED --externs dist/va5_externs.js --js dist/va5.js --js_output_file dist/va5.min.js --create_source_map dist/va5.min.js.map
+	closure-compiler --charset UTF-8 --compilation_level ADVANCED --externs dist/va5_externs.js --externs src/internal_externs.js --js src/va5_license.js --js dist/va5.js --js_output_file dist/va5.min.js --create_source_map dist/va5.min.js.map
 
 # --externs および --js は複数指定可能
 # --language_out ECMASCRIPT5 もしくは ECMASCRIPT5_STRICT を指定してもよい
