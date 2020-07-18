@@ -38,10 +38,15 @@ html5環境の為の、ゲーム向け音響ファイル再生ライブラリ
 - ループBGMのループポイントに無音部分が入ってしまう
     - LS(LOOPSTART)とLL(LOOPLENGTH)を指定してください。詳細は後で書きます
 
+- va5.min.js を再度closure-compilerにかけたら動かなくなった
+    - va5.min.js は既にclosure-compilerによって最適化されているので、再度closure-compilerにかけてもそれ以上良くはならないです。
+    - それでも再度closure-compilerにかけたい場合は、 va5_externs.js の他に src/internal_externs.js もexterns指定してください。これで通る筈です。
+
+
 
 # Development
 
-現在制作中
+[DEV.md](DEV.md) にあります
 
 
 # TODO
