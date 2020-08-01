@@ -234,6 +234,7 @@
 
   function playCommon (isVoice, path, opts) {
     opts = opts || {};
+    va5.Util.checkUnknownOptsBgm(opts);
     var ch = opts["channel"];
 
     if (isVoice) {

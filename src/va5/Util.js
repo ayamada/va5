@@ -318,42 +318,19 @@
   };
 
 
-  // seおよびvoiceにて、load前にplayEnd系パラメータの有無を確認したいケースが
-  // ある。それらを調べる関数を用意しておく
+  // seおよびvoiceにて、load前にplayEnd系パラメータの有無を確認したい時用
   Util.hasPlayEnd = function (state) {
     if (state.playStartSecTrue != null) {
       // true版のstartが存在するなら、true版のendで判定できる
       // (true版のstartはload後は必ずnull以外になる)
       return (state.playEndSecTrue != null);
     }
-
-    // EndSec採用フラグが立っている場合は簡単に判定できる
-    // (＝EndSecに何か有用な値が入っている)
-    if (state.isAdoptPlayEndSec) { return true; }
-    // そうでない場合はLengthSecとStartSecが両方あるならEndSecが算出できる
-    if (state.isAdoptPlayLengthSec && state.isAdoptPlayStartSec) { return true; }
-    // Sec版からは分からなかった。frame版から調査する
+    // End系の値そのものが設定されている場合は簡単に判定できる
+    if (state.playEndSec != null) { return true; }
     if (state.playEnd != null) { return true; }
-    if (state.playLength != null) { return true; }
-    // Endパラメータはどこにもなかった
-    return false;
-  };
-  // こっちは今のところ必要ない想定だが一応用意
-  Util.hasLoopEnd = function (state) {
-    if (state.loopStartSecTrue != null) {
-      // true版のstartが存在するなら、true版のendで判定できる
-      // (true版のstartはload後は必ずnull以外になる)
-      return (state.loopEndSecTrue != null);
-    }
-
-    // EndSec採用フラグが立っている場合は簡単に判定できる
-    // (＝EndSecに何か有用な値が入っている)
-    if (state.isAdoptLoopEndSec) { return true; }
-    // そうでない場合はLengthSecとStartSecが両方あるならEndSecが算出できる
-    if (state.isAdoptLoopLengthSec && state.isAdoptLoopStartSec) { return true; }
-    // Sec版からは分からなかった。frame版から調査する
-    if (state.loopEnd != null) { return true; }
-    if (state.loopLength != null) { return true; }
+    // End系がなくても、Length系があるなら「endあり」の判定になる
+    // (Start系はなくても0になるので「常にある」とできる)
+    if ((state.playLength != null) || (state.playLengthSec != null)) { return false; }
     // Endパラメータはどこにもなかった
     return false;
   };
@@ -388,6 +365,63 @@
     if (state1.pan != state2.pan) { return false; }
     // NB: volumeはconnectによる自動調整の対象なので同一チェックをしなくてよい
     return true;
+  };
+
+
+  // TODO: これらの配列を自動的に生成できるようにする必要がある(手で管理すると更新を忘れる為)。どうやればできるか考える事
+  // TODO: 各オプションの説明文も同時に定義できるようにしたい。可能か？
+  var validKeysCommon = [
+    "volume",
+    "pitch",
+    "pan",
+    "loopStartSec",
+    "loopEndSec",
+    "loopLengthSec",
+    "loopStart",
+    "loopEnd",
+    "loopLength",
+    "playStartSec",
+    "playEndSec",
+    "playLengthSec",
+    "playStart",
+    "playEnd",
+    "playLength"
+  ];
+  var validKeysBgm = validKeysCommon.concat([
+    "transitionMode",
+    "fadeinSec",
+    "channel"
+  ]);
+  var validKeysSe = validKeysCommon.concat([
+    "isAlarm",
+    "channel"
+  ]);
+
+  // optsに未知の名前のエントリ(おそらくtypo)がないか調べる。
+  // もしあった場合はそのkey名と、指定可能なkey一覧をログ出力する
+  function checkUnknownOpts (validKeysMap, opts) {
+    var unknownKey = null;
+    for (var k in opts) {
+      if (!validKeysMap[k]) {
+        unknownKey = k;
+        break;
+      }
+    }
+    if (unknownKey != null) {
+      va5._logError(["unknown key", unknownKey, "found. valid keys are", Object.keys(validKeysMap).sort()]);
+    }
+  }
+
+  var validKeysBgmMap = {};
+  validKeysBgm.forEach(function (k) { validKeysBgmMap[k] = true; });
+  Util.checkUnknownOptsBgm = function (opts) {
+    checkUnknownOpts(validKeysBgmMap, opts);
+  };
+
+  var validKeysSeMap = {};
+  validKeysSe.forEach(function (k) { validKeysSeMap[k] = true; });
+  Util.checkUnknownOptsSe = function (opts) {
+    checkUnknownOpts(validKeysSeMap, opts);
   };
 
 

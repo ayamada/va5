@@ -211,11 +211,11 @@
     if (path == null) { return null; }
 
     opts = opts || {};
+    va5.Util.checkUnknownOptsSe(opts);
     var ch = va5._validateSeCh(opts["channel"] || makeNewChannelId());
     var c = va5.Util.parsePlayCommonOpts(path, opts);
     // Seでは必ずplayEndSecを設定する必要がある(非ループ指定)
     if (!va5.Util.hasPlayEnd(c)) { c.playEndSec = 0; }
-
 
     var seChatteringSec = va5.getConfig("se-chattering-sec");
     if (!seChatteringSec) { return playSeTrue(path, opts, c, ch); }

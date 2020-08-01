@@ -4,4 +4,5 @@
 
 .deps-ok
 .device-spec-ok
+/build/
 /dist/
