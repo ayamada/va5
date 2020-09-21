@@ -257,9 +257,8 @@
     fadeSec = va5._validateNumber("fadeSec", 0, fadeSec, null, 0);
     if (ch == null) {
       // chが偽値なら、全再生中chに対して再帰実行する
-      Object.keys(chToState).forEach(function (ch2) {
-        Se.stopSe(ch2, fadeSec);
-      });
+      //Object.keys(chToState).forEach(function (ch2) { Se.stopSe(ch2, fadeSec); });
+      // …という仕様に当初はしていたが、playSeに失敗した時はnullが返るので、それをchとして扱っていた場合に困るので、何もしない事にした
       return;
     }
     ch = va5._validateSeCh(ch);

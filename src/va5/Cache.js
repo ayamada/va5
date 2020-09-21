@@ -128,9 +128,12 @@
 
 
   Cache.unloadIfUnused = function (path) {
+    if ((typeof path) !== "string") { return; }
     if (Cache.isLoading(path)) { return; }
     if (va5.Se.hasReference(path)) { return; }
     if (va5.Bgm.hasReference(path)) { return; }
+    // loadBufされたものならunloadしない事になった
+    if (path.indexOf(bufKeyPrefix) === 0) { return; }
     Cache.unload(path);
   };
 

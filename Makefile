@@ -27,6 +27,7 @@ clean:
 	$(CC) --version
 	jq --version
 	node --version
+	documentation --version
 	touch .deps-ok
 
 

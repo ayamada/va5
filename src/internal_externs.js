@@ -44,6 +44,7 @@ va5.playEnd;
 va5.playLength;
 
 // other common params
+va5.path;
 va5.volume;
 va5.pitch;
 va5.pan;
@@ -62,7 +63,6 @@ va5.playEndSecTrue;
 
 // Se params
 va5.channel;
-va5.path;
 va5.isAlarm;
 va5.volumeTrue;
 va5.as;
@@ -73,7 +73,6 @@ va5.cancelled;
 
 // Bgm params
 va5.disposed;
-va5.path;
 va5.volumeTrue;
 va5.transitionMode;
 va5.fadeinSec;

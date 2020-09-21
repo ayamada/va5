@@ -3,6 +3,13 @@
   var va5 = exports.va5 || {}; exports.va5 = va5;
   var Util = va5.Util || {}; va5.Util = Util;
 
+
+  Util.isObject = function (o) {
+    if (o == null) { return false; }
+    return (Object.prototype.toString.call(o) === "[object Object]");
+  }
+
+
   // NB: percentは小数を持たない扱いである事に注意
   Util.floatToPercent = function (f) { return Math.round(f * 100); };
   Util.percentToFloat = function (p) { return p * 0.01; };
@@ -35,7 +42,10 @@
   // msecのタイムスタンプを返す。実際の日時ではないので注意
   Util.getNowMsec = function () {
     if (getNowFn) { return getNowFn(); }
-    if (va5._device && va5._device.getCurrentSec && (va5._device.getCurrentSec() != null)) {
+    if (!va5._device) {
+      return null;
+    }
+    else if (va5._device.getCurrentSec && (va5._device.getCurrentSec() != null)) {
       getNowFn = getNowByAudioContext;
       va5._logDebug("getNowMsec function determined to getNowByAudioContext");
     }
@@ -142,26 +152,56 @@
     if (v != null) { r[rk] = v; }
   }
 
+  /**
+   * specialFilename
+   *
+   * 音源ファイルの名前に特定の文字列を含むようにrenameする事により、
+   * 再生開始位置、再生終了位置、ループ開始位置、ループ終端位置を指定できます。
+   * これらの詳細についてはplay系関数の該当引数の項目を参照してください。
+   * もしplay系関数の引数も同時に与えられた場合は引数の方が優先されます。
+   *
+   * 以下のパラメータが指定可能です。
+   * - ループ開始位置 `LOOPSTART` or `LOOPSTARTSEC`
+   * - ループ終端 `LOOPEND` or `LOOPENDSEC` or `LOOPLENGTH` or `LOOPLENGTHSEC`
+   * - 再生開始位置 `PLAYSTART` or `PLAYSTARTSEC`
+   * - 終了位置 `PLAYEND` or `PLAYENDSEC` or `PLAYLENGTH` or `PLAYLENGTHSEC`
+   * - 短縮 `LS` `LSS` `LE` `LES` `LL` `LLS` `PS` `PSS` `PE` `PES` `PL` `PLS`
+   * - 特殊ショートカット `NL` `ME`
+   *   (どちらも「非ループ音源」である事を示す、PLAYENDSEC=0の省略形)
+   *
+   * `foo.m4a` があった場合に `foo__(パラメータ名)=(数値).m4a` のように
+   * renameする事で、パラメータを指定する事が可能です。
+   * fooの直後のアンダーバーは二個必要です。
+   * 以下に実際のrename例を示します。
+   * (`foo.m4a` のサンプリングレートは44100Hzとします)
+   * - `foo__LOOPSTART0_LOOPEND88200_PLAYSTART44100.m4a`
+   *   ループ開始0秒位置、ループ終了2秒位置、実際の再生開始1秒位置
+   * - `foo__LOOPSTARTSEC0.5_LOOPENDSEC2.0_PLAYSTARTSEC1.0.m4a`
+   *   ループ開始0.5秒位置、ループ終了2秒位置、実際の再生開始1秒位置
+   *   (ファイル名の途中にドットが入るのが嫌な場合は、
+   *   SECなし指定の方を使ってください)
+   * - `foo__LOOPSTARTSEC0.5LOOPENDSEC2.0PLAYSTARTSEC1.0.m4a`
+   *   同上(パラメータの間をアンダーバーで区切らなくても認識される)
+   * - `foo__LOOPSTARTSEC=0.5_LOOPENDSEC=2.0_PLAYSTARTSEC=1.0.m4a`
+   *   同上(パラメータ値の前に=をつけてもよい)
+   * - `foo__LSS0.5LES2PSS1.m4a`
+   *   同上(短縮名)
+   * - `foo__PLAYEND-1.5.m4a`
+   *   曲の最後から1.5秒前の位置で再生終了
+   * - `foo__PLAYEND=-1.5.m4a`
+   *   同上(マイナス値ありなら=入りが分かりやすい)
+   * - `foo__NL.m4a` / `foo__ME.m4a`
+   *   非ループ曲指定(よく使う)
+   * - `foo__PES=5_.3gp` (foo.3gpが元ファイル)
+   *   これを foo__PES=5.3gp と指定してしまうと区切りが分からなくなるので、
+   *   パラメータの最後にアンダーバーをつけている
+   *
+   * @name specialFilename
+   */
   function parseAndApplyPathParameter (path) {
     var r = {};
     if (path == null) { return r; }
     r.path = path;
-    // - キーのセット一覧
-    //     - LOOPSTART or LOOPSTARTSEC
-    //     - LOOPEND or LOOPENDSEC or LOOPLENGTH or LOOPLENGTHSEC
-    //     - PLAYSTART or PLAYSTARTSEC
-    //     - PLAYEND or PLAYENDSEC or PLAYLENGTH or PLAYLENGTHSEC
-    //     - 上記の省略形 LS LE LL PS PE PL LSS LES LLS PSS PES PLS
-    //     - 特殊ショートカット NL ME
-    // - 実例
-    //     - foo__LOOPSTART0_LOOPEND99600_PLAYSTART44800.m4a
-    //     - foo__LOOPSTARTSEC0.5_LOOPENDSEC2.0_PLAYSTARTSEC1.0.m4a
-    //     - foo__LOOPSTARTSEC=0.5_LOOPENDSEC=2.0_PLAYSTARTSEC=1.0.m4a # も可
-    //     - foo__PLAYEND-1.5.m4a
-    //     - foo__PLAYEND=-1.5.m4a # マイナス値ありなら=入りが分かりやすい？
-    //     - foo.m4a#__PLAYEND-1.5 # キャッシュが増えるのでよくない
-    //     - foo.m4a?__PLAYEND-1.5 # キャッシュがとても増えるのでとてもよくない
-    //     - foo__PLAYEND5.3gp -> foo__PLAYEND5_.3gp # 5.3と認識されるのを防ぐ
 
     // ディレクトリセパレータである「/」以前を除去する
     // (親ディレクトリ部分に「__」があると引っかかってしまうのを避ける)
@@ -183,7 +223,7 @@
     if ("NL" in params) { r["playEndSec"] = 0; } // NO LOOP
     if ("ME" in params) { r["playEndSec"] = 0; } // MUSIC EFFECT(ツクール呼称)
 
-    // ショートカット
+    // 短縮名
     setP(r, "loopStartSec", params, "LSS");
     setP(r, "loopEndSec", params, "LES");
     setP(r, "loopLengthSec", params, "LLS");
@@ -368,9 +408,37 @@
   };
 
 
+  /**
+   * va5.bgm(opts) / va5.se(opts) / va5.voice(opts) のオプション詳細
+   *
+   * - opts.path : 再生関数の第1引数にObjectを渡す場合は、ここで再生したい音源のpathを指定する。
+   * - opts.volume : 再生時の相対音量の倍率を指定する。マスターボリュームとBgm/Se/Voiceのボリューム設定の影響を受ける。デフォルト値1.0。
+   * - opts.pitch : 再生時のピッチを指定する。デフォルト値1.0。下限0.1、上限10.0。
+   * - opts.pan : 再生時のパンを指定する。デフォルト値0.0。下限-1.0、上限1.0。
+   *
+   * - opts.loopStartSec : 「ループ再生の復帰ポイント位置」をファイル先頭からの秒数で指定する(これはpitchを変えた場合であっても本来の速度で換算される)。省略時は0秒地点。
+   * - opts.loopStart : loopStartSecのフレーム数指定版。整数で指定する事。多くのオーディオファイルのサンプリングレートは44100Hzなので44100＝1秒になる。
+   * - opts.loopEndSec : 「ループ再生の末尾位置」をファイル先頭からの秒数で指定する。ただし0およびマイナス値を指定した場合はファイル末尾基準で換算される。省略時はファイル末尾。
+   * - opts.loopEnd : loopEndSecのフレーム数指定版。
+   * - opts.loopLengthSec : 「ループ再生の末尾位置」をloopStartSec(もしくはloopStartからの秒数)で指定する。
+   * - opts.loopLength : loopLengthSecのフレーム数指定版。
+   * - opts.playStartSec : 曲の再生開始位置を秒数指定する。省略時はloopStartSec(もしくはloopStartから換算される秒数)と同じになる。loopStartSec系列と異なる値を設定可能。
+   * - opts.playStart : playStartSecのフレーム数指定版。
+   * - opts.playEndSec : 省略時はループ音源として扱われる。これが指定されると非ループ音源扱いとなりループ系パラメータは無視され、この秒数地点に到達したタイミングで再生が即座に終了される。
+   * - opts.playEnd : playEndSecのフレーム数指定版。
+   * - opts.playLengthSec : playEndSecをplayStartSec地点からの相対秒数で指定できる。
+   * - opts.playLength : playLengthSecのフレーム数指定版。
+   *
+   * - opts.transitionMode : Bgm専用。 `"connectNever"` `"connectIfSame"` `"connectIfPossible"` のいずれかを指定する。デフォルト値は `"connectIfSame"` 。あるBgm再生中に同じ(もしくは近い)パラメータのBgmを再生しようとした時の挙動を指定する。 `connectNever` だった場合は常に一旦フェードアウト終了してから新たに再生し直す。 `connectIfSame` だった場合はボリューム以外のパラメータが同一の場合はボリューム適用のみ行う(pitch等が違っている場合はたとえ同じpathであってもconnectNeverの時と同様の処理になる)。 `connectIfPossible` は `volume` `pitch` `pan` 以外のパラメータが同一の時に限り `connectIfSame` の処理を行う(この3パラメータは新しい値が適用される)。
+   * - opts.fadeinSec : Bgm/Voice専用。再生開始時にこの秒数かけてフェードインを行う。デフォルト値0秒。
+   * - opts.channel : Bgm/Voice専用。指定したチャンネル名(任意の文字列)に対してBgm/Voice再生を予約する。チャンネル名を指定する事で、同時に複数のBgmの再生とその制御が行える。指定したチャンネルに古い再生がなければ即座に再生が開始される。古い再生がある場合はそれを規定の秒数かけてフェードアウト終了した後に再生を行う。省略時のチャンネル名は `"_bgm"` だが、Voiceの場合はこのチャンネル名指定は必須となり省略する事はできない(Voiceに対応する人名などを示す文字列を指定するとよい)。
+   * - opts.isAlarm : Se専用。va5.getConfig("is-pause-on-background")が真値の時にバックグラウンド状態であってもSeを再生する(未実装)
+   *
+   * @name playOptions
+   */
   // TODO: これらの配列を自動的に生成できるようにする必要がある(手で管理すると更新を忘れる為)。どうやればできるか考える事
-  // TODO: 各オプションの説明文も同時に定義できるようにしたい。可能か？
   var validKeysCommon = [
+    "path",
     "volume",
     "pitch",
     "pan",

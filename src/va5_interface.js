@@ -4,7 +4,8 @@
 
   // NB: このファイル中の「va5中の、小文字のa-zで始まるプロパティ」は
   //     Makefileによって、自動的にexternされる。
-  //     externしたくないものは、大文字はじまりにしたり、_はじまりにするとよい。
+  //     externしたくないものは、_はじまりにするとよい。
+  //     (大文字はじまりのパッケージもextern対象から除外される)
 
 
   va5._validateNumber = va5.Assert.validateNumber;
@@ -24,7 +25,19 @@
   va5._assertEnum = va5.Assert.assertEnum;
 
 
+  /**
+   * va5.getConfig(key)
+   * configパラメータ内容の取得。
+   * 詳細は別セクションを参照。
+   */
   va5.getConfig = va5.Config.get;
+  /**
+   * va5.setConfig(key, val)
+   * configパラメータ内容の設定。
+   * 詳細は別セクションを参照。
+   * 一部のパラメータは va5.init() よりも先に設定しておかないと効果がない。
+   * 別の一部のパラメータは設定変更内容が即座に反映される。
+   */
   va5.setConfig = va5.Config.set;
 
 
@@ -32,54 +45,150 @@
   va5._logDebug = va5.Log.debug;
 
 
+  /**
+   * va5.init()
+   * システム全体の初期化。
+   * 最初に一度だけ行えばよい。二回目以上実行しても何もしない。
+   * 大部分の関数で暗黙の内に実行しているので、通常は明示的に実行しなくてよい。
+   * 一部のconfigパラメータは va5.init() よりも先に設定しておく必要がある。
+   */
   va5.init = va5.Init.init;
 
 
+  /**
+   * va5.getDeviceName()
+   * 内部で選択されたデバイスが文字列として返る。
+   * "WebAudio" (再生可能)、もしくは "Dumb" (再生不可、何をやっても無音)。
+   */
   va5.getDeviceName = function () {
     va5.init();
     return va5._device.name;
   };
 
 
+  /**
+   * va5.floatToPercent(f)
+   * 小数値をパーセント整数値に変換するユーティリティ関数。
+   */
   va5.floatToPercent = va5.Util.floatToPercent;
+  /**
+   * va5.percentToFloat(p)
+   * パーセント整数値を小数値に変換するユーティリティ関数。
+   */
   va5.percentToFloat = va5.Util.percentToFloat;
+  /**
+   * va5.getNowMsec()
+   * WebAudio依存の、経過時間を測定する為の高精度のマイクロ秒数を取得する。
+   * WebAudio依存の為、 va5.init() が実行される前はnullが返る。
+   * この秒数は現実の日時との相関関係がない。
+   */
   va5.getNowMsec = va5.Util.getNowMsec;
 
 
-  va5.isLoading = va5.Cache.isLoading;
+  /**
+   * va5.isLoading(path)
+   * 指定したpathがロード待ちもしくはロード中の時のみ真を返す。
+   * もしpathがObjectだった場合は、path.pathがpathとして参照される。
+   * (bgm/se/voiceの第一引数にObjectを渡す時と対称になる)
+   */
+  va5.isLoading = function (path) {
+    va5.init();
+    if (va5.Util.isObject(path)) { path = path.path; }
+    return va5.Cache.isLoading(path);
+  };
   //va5.isLoaded = va5.Cache.isLoaded; // これは外部には提供しない事になった
-  va5.isError = va5.Cache.isError;
-  va5.isCancelled = va5.Cache.isCancelled;
+  /**
+   * va5.isError(path)
+   * 指定したpathのロードがエラー終了していた時のみ真を返す。
+   * もしpathがObjectだった場合は、path.pathがpathとして参照される。
+   * (bgm/se/voiceの第一引数にObjectを渡す時と対称になる)
+   */
+  va5.isError = function (path) {
+    va5.init();
+    if (va5.Util.isObject(path)) { path = path.path; }
+    return va5.Cache.isError(path);
+  };
+  /**
+   * va5.isCancelled(path)
+   * 指定したpathのロードがキャンセル終了していた時か、
+   * そもそもロード要求が何もされていない時に、真を返す。
+   * (つまり、ロード中、ロード成功、ロードエラーの時は偽を返す)
+   * もしpathがObjectだった場合は、path.pathがpathとして参照される。
+   * (bgm/se/voiceの第一引数にObjectを渡す時と対称になる)
+   */
+  va5.isCancelled = function (path) {
+    va5.init();
+    if (va5.Util.isObject(path)) { path = path.path; }
+    return va5.Cache.isCancelled(path);
+  };
 
+  /**
+   * va5.load(path, handle)
+   * 指定したpathの事前ロードを予約する。事前ロードはasyncに実行される。
+   * handleが指定された場合、事前ロードが正常終了かエラー終了かキャンセル終了
+   * した際にhandle()が実行される。
+   * 正常終了かどうかはva5.isError()やva5.isCancelled()等で確認する事。
+   * もしpathが既にロード済の場合は、何もせず即座にhandleを実行する。
+   * もしpathがObjectだった場合は、path.pathがpathとして参照される。
+   * (bgm/se/voiceの第一引数にObjectを渡す時と対称になる)
+   */
   va5.load = function (path, cont) {
     va5._logDebug(["called va5.load", path]);
     va5.init();
+    if (va5.Util.isObject(path)) { path = path.path; }
     va5.Cache.load(path, cont);
   };
 
+  /**
+   * va5.loadBuf(buf)
+   * 引数として渡されたオーディオバッファを即座にロードする。
+   * 返り値としてpath相当の文字列を返すので、
+   * これをva5.se()等に渡す事でbufを再生できる。
+   * このpathはunload可能だが、unload後の再利用はできないので注意する事。
+   */
   // こちらは即座にロードされるのでconfを取る必要はない。
-  // 返り値としてpath相当の文字列を返すので、これをplaySe等に渡す事
-  // (このpathはunload後の再利用はできないので要注意)
   va5.loadBuf = function (buf) {
     va5._logDebug(["called va5.loadBuf", buf]);
     va5.init();
     return va5.Cache.loadBuf(buf);
   };
 
+  /**
+   * va5.unload(path)
+   * ロード済のpathをメモリから解放する。
+   * このpathの全ての再生中のbgm/se/voiceは即座に再生停止する。
+   * pathがロード中だった場合はキャンセルされる。
+   * pathがロードされていない場合は何も起きない。
+   * 一度unloadしたpathを再度loadしたり再生しても問題ない。
+   * もしpathがObjectだった場合は、path.pathがpathとして参照される。
+   * (bgm/se/voiceの第一引数にObjectを渡す時と対称になる)
+   */
   va5.unload = function (path) {
     va5._logDebug(["called va5.unload", path]);
     va5.init();
+    if (va5.Util.isObject(path)) { path = path.path; }
     va5.Bgm.stopImmediatelyByPath(path); // voiceもここに含まれる
     va5.Se.stopImmediatelyByPath(path);
     va5.Cache.unload(path);
   };
 
+  /**
+   * va5.unloadIfUnused(path)
+   * このpathがロード中でも再生中でもない場合にのみunloadする。
+   * もしpathがObjectだった場合は、path.pathがpathとして参照される。
+   * (bgm/se/voiceの第一引数にObjectを渡す時と対称になる)
+   */
   va5.unloadIfUnused = function (path) {
     va5._logDebug(["called va5.unloadIfUnused", path]);
     va5.init();
+    if (va5.Util.isObject(path)) { path = path.path; }
     va5.Cache.unloadIfUnused(path);
   };
 
+  /**
+   * va5.unloadAll()
+   * 全てをunloadする。
+   */
   va5.unloadAll = function () {
     va5._logDebug("called va5.unloadAll");
     va5.init();
@@ -88,6 +197,10 @@
     va5.Cache.getAllPaths().forEach(va5.Cache.unload);
   };
 
+  /**
+   * va5.unloadAllIfUnused()
+   * 全てをunloadIfUnusedする。
+   */
   // TODO: これは気軽に呼ばれる割にかなり重い、軽量化できるならしたいが…
   va5.unloadAllIfUnused = function () {
     va5._logDebug("called va5.unloadAllIfUnused");
@@ -95,21 +208,60 @@
     va5.Cache.getAllPaths().forEach(va5.Cache.unloadIfUnused);
   };
 
-  // NB: ロード済のpathのみ取得可能、未ロードの場合はnullが返る
-  //     WebAudio非対応の場合は0が返る、注意
-  //     単位はsec
-  va5.getDuration = va5.Cache.getDuration;
+  /**
+   * va5.getDuration(path)
+   * ロード済のpathの曲の長さを秒単位で取得する。
+   * ロード済のpathのみ取得可能、未ロードの場合はnullが返る。
+   * WebAudio非対応環境(Dumb)の場合は常に0が返る、注意。
+   * もしpathがObjectだった場合は、path.pathがpathとして参照される。
+   * (bgm/se/voiceの第一引数にObjectを渡す時と対称になる)
+   */
+  va5.getDuration = function (path) {
+    va5.init();
+    if (va5.Util.isObject(path)) { path = path.path; }
+    return va5.Cache.getDuration(path);
+  };
 
 
-  // NB: ロード済のpathのみ取得可能、未ロードの場合はnullが返る
-  //     WebAudio非対応の場合は0が返る、注意
-  //     単位はHz(大体は44100, 48000, 22050, あたりの値が返る)
-  va5.getSampleRate = va5.Cache.getSampleRate;
+  /**
+   * va5.getSampleRate(path)
+   * ロード済のpathのサンプリングレートの数値を取得する。
+   * ロード済のpathのみ取得可能、未ロードの場合はnullが返る。
+   * WebAudio非対応環境(Dumb)の場合は常に0が返る、注意。
+   * 単位はHz。ほとんどのケースで44100, 48000, 22050, あたりの値が得られる。
+   * もしpathがObjectだった場合は、path.pathがpathとして参照される。
+   * (bgm/se/voiceの第一引数にObjectを渡す時と対称になる)
+   */
+  va5.getSampleRate = function (path) {
+    va5.init();
+    if (va5.Util.isObject(path)) { path = path.path; }
+    return va5.Cache.getSampleRate(path);
+  };
 
 
+  /**
+   * va5.getAudioContext()
+   * WebAudioのAudioContextを取得する。Dumbの時はnullになる。
+   * SEをon the flyに生成する時等に利用する。
+   */
+  va5.getAudioContext = function () {
+    va5.init();
+    return va5._device.getAudioContext();
+  };
+
+
+  /**
+   * va5.se(path, opts) / va5.se(opts)
+   * pathもしくはopts.pathをSEとして再生し、そのチャンネルidを返す。
+   * チャンネルidはSEを途中で停止させる必要がなければそのまま捨てても問題ない。
+   * pathがまだロードされていない場合はロードを行ってから再生する。
+   * (少しタイムラグが発生する)
+   * optsの詳細は別セクションを参照。
+   */
   va5.se = function (path, opts) {
     va5._logDebug(["called va5.se", path, opts]);
     va5.init();
+    if ((opts == null) && va5.Util.isObject(path)) { opts = path; path = opts.path; }
     if (path == null) {
       var ch = (opts && opts["channel"]) || null;
       va5.stopSe(ch, null);
@@ -120,18 +272,42 @@
     }
   };
 
+  /**
+   * va5.playSe(path, opts)
+   * va5.se()のalias。
+   */
   va5.playSe = va5.se; // alias
 
+  /**
+   * va5.stopSe(ch, fadeSec)
+   * 指定したチャンネルidのSEの再生をfadeSec秒かけてフェードアウト終了する。
+   * fadeSecを指定しない場合はva5.getConfig("default-se-fade-sec")の秒数が
+   * 適用される。デフォルト値は0秒。
+   */
   va5.stopSe = function (ch, fadeSec) {
     va5._logDebug(["called va5.stopSe", ch, fadeSec]);
     va5.init();
     va5.Se.stopSe(ch, fadeSec);
   };
 
+  /**
+   * va5.statsSe()
+   * 現在のSEの再生状況(再生中のchが何個あるか)の統計情報を取得する。
+   * 通常は利用する必要はない。デバッグ用。
+   */
   va5.statsSe = va5.Se.stats;
 
 
-  // 個別にse-chattering-secを設定したいような時に使うユーティリティ
+  /**
+   * va5.makePlaySePeriodically(intervalSec, path, opts)
+   * 毎フレーム連打されるSEを、実際の再生は一定間隔にしたいような時に使う
+   * ユーティリティ関数。引数なし関数が返される。返された関数を実行すると
+   * va5.se(path, opts)が実行される。ただし返された関数を毎フレーム実行しても
+   * 実際の再生間隔はintervalSec毎に間引かれる。間引かれた時はnullが返る。
+   * (間引かれない時は通常通りチャンネルidが返る)
+   * もしpathがObjectだった場合は、path.pathがpathとして参照される。
+   * (bgm/se/voiceの第一引数にObjectを渡す時と対称になる)
+   */
   va5.makePlaySePeriodically = function (intervalSec, path, opts) {
     var lastPlaySec = 0;
     var f = function () {
@@ -145,33 +321,81 @@
   };
 
 
-  // seをon the flyに生成する時等にこれが必要となった
-  va5.getAudioContext = function () {
-    va5.init();
-    return va5._device.getAudioContext();
-  };
-
-
+  /**
+   * va5.getBgmPos(ch)
+   * BGMのチャンネルidを指定し、再生中の曲が先頭から何秒のところを現在
+   * 再生しているのかの位置を秒単位で返す。
+   * 途中から再生開始させた場合であっても、曲の先頭からが基準となる。
+   * またpitchを変更している場合であっても、本来の曲の再生速度での位置となる。
+   * 再生が終了している等の場合はnullが返る。
+   */
   va5.getBgmPos = va5.Bgm.getBgmPos;
+  /**
+   * va5.isInBackground()
+   * (ブラウザの)このタブがバックグラウンドかどうかを返す。
+   */
   va5.isInBackground = va5.Bgm.isInBackground;
 
+  /**
+   * va5.bgm(path, opts) / va5.bgm(opts)
+   * pathもしくはopts.pathをBGMとして再生する。
+   * pathがまだロードされていない場合はロードを行ってから再生する。
+   * (少しタイムラグが発生する)
+   * optsの詳細は別セクションを参照。
+   * 既に別のBGMを再生中の場合は、まず再生中のBGMを
+   * va5.getConfig("default-bgm-fade-sec") かけて(デフォルト1秒)
+   * フェードアウト終了させてから、新しいBGMを再生する。
+   * pathにnullが指定された場合は va5.stopBgm() と同じ挙動となる。
+   */
   va5.bgm = function (path, opts) {
     va5._logDebug(["called va5.bgm", path, opts]);
     va5.init();
+    if ((opts == null) && va5.Util.isObject(path)) { opts = path; path = opts.path; }
     return va5.Bgm.playBgm(path, opts);
   };
+  /**
+   * va5.playBgm(path, opts)
+   * va5.bgm()のalias。
+   */
   va5.playBgm = va5.bgm; // alias
 
+  /**
+   * va5.voice(path, opts) / va5.voice(opts)
+   * pathもしくはopts.pathをVoiceとして再生する。
+   * optsの詳細は別セクションを参照。
+   * BGM/SEとは違い、何らかのチャンネル識別子を渡す事が必須。
+   */
   va5.voice = function (path, opts) {
     va5._logDebug(["called va5.voice", path, opts]);
     va5.init();
+    if ((opts == null) && va5.Util.isObject(path)) { opts = path; path = opts.path; }
     return va5.Bgm.playVoice(path, opts);
   };
+  /**
+   * va5.playVoice(path, opts)
+   * va5.voice()のalias。
+   */
   va5.playVoice = va5.voice; // alias
 
+  /**
+   * va5.stopBgm(ch, fadeSec)
+   * 指定したchのBGMの再生をfadeSec秒かけてフェードアウト終了する。
+   * fadeSecを指定しない場合はva5.getConfig("default-bgm-fade-sec")の秒数が
+   * 適用される。デフォルト値1秒。
+   */
   va5.stopBgm = va5.Bgm.stopBgm;
+  /**
+   * va5.stopVoice(ch, fadeSec)
+   * 指定したchのVoiceの再生をfadeSec秒かけてフェードアウト終了する。
+   * fadeSecを指定しない場合はva5.getConfig("default-voice-fade-sec")の秒数が
+   * 適用される。デフォルト値0.1秒。
+   */
   va5.stopVoice = va5.Bgm.stopVoice;
 
 
+  /**
+   * va5.version
+   * va5のバージョン文字列が入っている。
+   */
   va5.version = va5.version || "0.0.0-UNDEFINED";
 })(this);
