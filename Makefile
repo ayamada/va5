@@ -70,7 +70,15 @@ check-device-spec: .device-spec-ok ;
 build: .device-spec-ok build/va5.js build/va5.min.js ;
 
 
-dist: clean deps build
+REFERENCE.md: .deps-ok src/reference_header.md src/reference_footer.md src/va5_interface.js src/va5/*.js
+	documentation build -f md --markdown-toc false --sort-order alpha -o build/dump.md src/va5_interface.js src/va5/*.js
+	head -n 2 build/dump.md > build/reference_header.txt
+	tail -n +3 build/dump.md > build/reference_body.md
+	node -e 'var mode = ""; require("fs").readFileSync("build/reference_body.md", "utf-8").split("\n").forEach(function (line) { var m = line.match(/^(\#\#\#?)/); if (m) { mode = m[0]; } else if (mode === "###") {} else if (mode === "##" && line.length) { process.stdout.write("## "+line+"\n\n"); mode = ""; } else { process.stdout.write(line+"\n"); } }); process.stdout.write("\n");' > build/reference_body2.md
+	cat build/reference_header.txt src/reference_header.md build/reference_body2.md src/reference_footer.md > REFERENCE.md
+
+
+dist: clean deps build REFERENCE.md
 	mkdir -p dist/va5
 	cp build/* dist/va5
 	#cp package.json dist/va5
