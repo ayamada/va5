@@ -62,6 +62,7 @@
     var oldBaseVolume = baseVolume;
     baseVolume = newVolume;
     if (isInit) { return; }
+    // init前はpchToStatusは空なので、init前に以下を実行しても安全
     Object.keys(pchToStatus).forEach(function (pch) {
       var stats = pchToStatus[pch];
       if (!stats) { return; }
@@ -77,6 +78,7 @@
     var oldBaseVolume = baseVolume;
     baseVolumeVoice = newVolume;
     if (isInit) { return; }
+    // init前はpchToStatusは空なので、init前に以下を実行しても安全
     Object.keys(pchToStatus).forEach(function (pch) {
       var stats = pchToStatus[pch];
       if (!stats) { return; }

@@ -131,6 +131,8 @@
    * もしpathが既にロード済の場合は、何もせず即座にhandleを実行する。
    * もしpathがObjectだった場合は、path.pathがpathとして参照される。
    * (bgm/se/voiceの第一引数にObjectを渡す時と対称になる)
+   * bgm/se/voiceの各再生関数は、pathが未load状態だった場合は内部で
+   * このva5.load()を実行してくれる(ロード完了後に再生が開始される)。
    */
   va5.load = function (path, cont) {
     va5._logDebug(["called va5.load", path]);
@@ -158,7 +160,7 @@
    * ロード済のpathをメモリから解放する。
    * このpathの全ての再生中のbgm/se/voiceは即座に再生停止する。
    * pathがロード中だった場合はキャンセルされる。
-   * pathがロードされていない場合は何も起きない。
+   * pathがロードされていない/既にunload済の場合は何も起きない。安全。
    * 一度unloadしたpathを再度loadしたり再生しても問題ない。
    * もしpathがObjectだった場合は、path.pathがpathとして参照される。
    * (bgm/se/voiceの第一引数にObjectを渡す時と対称になる)
@@ -200,6 +202,7 @@
   /**
    * va5.unloadAllIfUnused()
    * 全てをunloadIfUnusedする。
+   * ※現在の実装はかなり重いです。あまり頻繁に実行しないようにしてください。
    */
   // TODO: これは気軽に呼ばれる割にかなり重い、軽量化できるならしたいが…
   va5.unloadAllIfUnused = function () {
@@ -215,6 +218,8 @@
    * WebAudio非対応環境(Dumb)の場合は常に0が返る、注意。
    * もしpathがObjectだった場合は、path.pathがpathとして参照される。
    * (bgm/se/voiceの第一引数にObjectを渡す時と対称になる)
+   * ※音源ファイルの形式によっては、不正確になる事があります。
+   * (勝手に無音部分が追加される場合がある為。詳細は他セクションを参照)
    */
   va5.getDuration = function (path) {
     va5.init();
@@ -255,7 +260,7 @@
    * pathもしくはopts.pathをSEとして再生し、そのチャンネルidを返す。
    * チャンネルidはSEを途中で停止させる必要がなければそのまま捨てても問題ない。
    * pathがまだロードされていない場合はロードを行ってから再生する。
-   * (少しタイムラグが発生する)
+   * (内部でロード待ちが発生する)
    * optsの詳細は別セクションを参照。
    */
   va5.se = function (path, opts) {
@@ -330,6 +335,7 @@
    * 再生が終了している等の場合はnullが返る。
    */
   va5.getBgmPos = va5.Bgm.getBgmPos;
+
   /**
    * va5.isInBackground()
    * (ブラウザの)このタブがバックグラウンドかどうかを返す。
@@ -340,7 +346,7 @@
    * va5.bgm(path, opts) / va5.bgm(opts)
    * pathもしくはopts.pathをBGMとして再生する。
    * pathがまだロードされていない場合はロードを行ってから再生する。
-   * (少しタイムラグが発生する)
+   * (内部でロード待ちが発生する)
    * optsの詳細は別セクションを参照。
    * 既に別のBGMを再生中の場合は、まず再生中のBGMを
    * va5.getConfig("default-bgm-fade-sec") かけて(デフォルト1秒)
@@ -383,14 +389,22 @@
    * fadeSecを指定しない場合はva5.getConfig("default-bgm-fade-sec")の秒数が
    * 適用される。デフォルト値1秒。
    */
-  va5.stopBgm = va5.Bgm.stopBgm;
+  va5.stopBgm = function (ch, fadeSec) {
+    va5._logDebug(["called va5.stopBgm", ch, fadeSec]);
+    va5.init();
+    va5.Bgm.stopBgm(ch, fadeSec);
+  };
   /**
    * va5.stopVoice(ch, fadeSec)
    * 指定したchのVoiceの再生をfadeSec秒かけてフェードアウト終了する。
    * fadeSecを指定しない場合はva5.getConfig("default-voice-fade-sec")の秒数が
    * 適用される。デフォルト値0.1秒。
    */
-  va5.stopVoice = va5.Bgm.stopVoice;
+  va5.stopVoice = function (ch, fadeSec) {
+    va5._logDebug(["called va5.stopVoice", ch, fadeSec]);
+    va5.init();
+    va5.Bgm.stopVoice(ch, fadeSec);
+  };
 
 
   /**

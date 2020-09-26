@@ -141,7 +141,7 @@
 
   /**
    * va5.getConfig("is-unload-automatically-when-finished-bgm")
-   * これが真値ならbgm終了時に自動的に va5.unloadIfUnused() を実行します。
+   * 真値ならbgm/voiceの終了時に自動的に va5.unloadIfUnused() を実行します。
    * デフォルト値false。
    * @name getConfigOption
    */
@@ -153,6 +153,8 @@
    * va5.getConfig("se-chattering-sec")
    * 同一SEがこの秒数以内に連打された場合は再生を抑制する。
    * デフォルト値0.05。
+   * ※この値を動的に変更するのはおすすめしません。
+   * SE毎に変動させたい場合は va5.makePlaySePeriodically() を推奨します。
    * @name getConfigOption
    */
   defineConfig("se-chattering-sec", 0.05, function (newV, oldV) {
@@ -164,6 +166,7 @@
    * va5.getConfig("is-use-dumb-mode-forcibly")
    * 常にDumbモード(無音モード)で起動する。デバッグ用。
    * デフォルト値false。
+   * va5.init() 後にこの値を変更しても効果がありません。
    * @name getConfigOption
    */
   defineConfig("is-use-dumb-mode-forcibly", false, function (newV, oldV) {
