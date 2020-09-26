@@ -86,9 +86,8 @@ html5環境の為の、ゲーム向け音響ファイル再生ライブラリ(We
 - ループBGMのループポイントに無音部分が入ってしまう
     - 前述の通り、m4aとmp3は無音部分が勝手に追加されてしまうケースがあります。これを回避するには、LS(LOOPSTART)とLL(LOOPLENGTH)を指定してください。このパラメータの詳細はリファレンスにあります。
 
-- `va5.min.js` を再度closure-compilerにかけたら動かなくなった
-    - `va5.min.js` は既にclosure-compilerによって最適化されているので、再度closure-compilerにかけてもそれ以上良くはならないです。
-    - それでも再度closure-compilerにかけたい場合は、 `va5_externs.js` の他に `src/internal_externs.js` もexterns指定してください。これで通る筈です。
+- コンソールにログを出したくない
+    - `va5.setConfig("is-output-error-log", false)` してください。詳細はリファレンス参照。
 
 - 明示的にGCとかする必要ある？
     - 小さいゲームでは不要です。使い終わった再生チャンネルは自動的に破棄されます。
@@ -96,12 +95,12 @@ html5環境の為の、ゲーム向け音響ファイル再生ライブラリ(We
         - リファレンスで `va5.unloadIfUnused()` `va5.unloadAllIfUnused()` `va5.getConfig("is-unload-automatically-when-finished-bgm")` の項目を参照してください。普通にunloadするよりも適切な場合があります。
 
 - va5.init() は実行した方がよいの？
-    - 通常は実行しなくてよいです。SE再生時等に、必要に応じて内部で勝手に実行します。
-    - 複数回実行しても問題はありません
-    - 一部の関数はこれを実行しません
-        - `va5.getConfig()` `va5.setConfig()` はその性質上、内部で `va5.init()` を実行しません
-        - `va5.getNowMsec()` `va5.getBgmPos()` はWebAudioインスタンスのアクティベーションに関係する為、内部で `va5.init()` を実行しません
-        - `va5.floatToPercent()` `va5.percentToFloat()` のようなユーティリティ関数は `va5.init()` を実行しません(initがなくても動作します)
+    - スマホ等では「タッチ等をトリガーとしてWebAudioのresumeを行う」必要がある為、なるべく早い段階で実行した方がよいです。ただし未実行でも音源再生の際に自動的に実行されるので、必須ではありません。
+    - 複数回実行しても問題はありません。
+
+- `va5.min.js` を再度closure-compilerにかけたら動かなくなった
+    - `va5.min.js` は既にclosure-compilerによって最適化されているので、再度closure-compilerにかけてもそれ以上良くはならないです。
+    - それでも再度closure-compilerにかけたい場合は、 `va5_externs.js` の他に `src/internal_externs.js` もexterns指定してください。これで通る筈です。
 
 
 # Glossary

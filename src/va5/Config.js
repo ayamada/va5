@@ -27,6 +27,7 @@
    * va5.getConfig("is-output-error-log")
    * 真なら、何らかのエラーがあった場合にその内容をコンソールに出力する。
    * デフォルト値true。
+   * 開発時は真にしておく事を推奨します。
    * @name getConfigOption
    */
   defineConfig("is-output-error-log", true, function (newV, oldV) {
@@ -37,6 +38,7 @@
    * va5.getConfig("is-output-debug-log")
    * 真なら、非常に細かい動作情報ログをコンソールに出力する。
    * デフォルト値false。
+   * 通常はこれを真にする必要はありません。
    * @name getConfigOption
    */
   defineConfig("is-output-debug-log", false, function (newV, oldV) {
