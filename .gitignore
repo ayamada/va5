@@ -6,3 +6,6 @@
 .device-spec-ok
 /build/
 /dist/
+
+demo/va5.min.js
+demo/demo.html

@@ -213,8 +213,11 @@
     found[1].split("_").forEach(function (s) {
       var m = s.match(/([A-Z]+)=?(.*)/);
       if (m) {
+        var k = m[1];
+        var v = null;
         var n = parseFloat(m[2]);
-        if (isFinite(n)) { params[m[1]] = n; }
+        if (isFinite(n)) { v = n; }
+        params[k] = v;
       }
     });
     va5._logDebug(["parse params from path", path, params]);

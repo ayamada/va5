@@ -7,9 +7,9 @@
   device.name = "WebAudio";
 
 
-  // NB: WebAudio / AudioContext へのiOSの対応はmobile safari6からとなっている。
-  //     それ以前は無音になるので問題ないが、中途半端に対応している機能を
-  //     うっかり叩かないように注意する必要がある。
+  // NB: WebAudio / AudioContext へのiOSの対応はmobile safari6以降で、
+  //     それ以前は無音になるので問題ないが、実装初期の、
+  //     中途半端に対応している機能をうっかり叩かないように注意する必要がある。
 
 
   var ac = null;
@@ -25,6 +25,8 @@
 
     va5._logDebug("called va5.Devices.WebAudio.init");
 
+    // TODO: AudioContextの生成もユーザーアクションハンドル内で行いたい
+    //       (現状の方式だと、生成したタイミングでchromeで警告が出てしまう)
     var AudioContext = window.AudioContext || window.webkitAudioContext;
     if (!AudioContext) {
       va5._logError("neither AudioContext nor webkitAudioContext");
