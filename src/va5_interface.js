@@ -369,10 +369,38 @@
   va5.playBgm = va5.bgm; // alias
 
   /**
+   * va5.bgs(path, opts) / va5.bgs(opts)
+   * pathもしくはopts.pathをBGSとして再生する。
+   * 内部動作の実体は channel=__BGS として va5.bgm() を実行するだけ。
+   */
+  va5.bgs = function (path, opts) {
+    va5._logDebug(["called va5.bgs", path, opts]);
+    va5.init();
+    if ((opts == null) && va5.Util.isObject(path)) { opts = path; path = opts.path; }
+    var newOpts = null;
+    if (opts == null) {
+    }
+    else if (Object.assign) {
+      newOpts = Object.assign({}, opts);
+      newOpts["channel"] = "__BGS";
+    }
+    else {
+      newOpts = {};
+      Object.keys(opts).forEach(function (k) { newOpts[k] = opts[k]; });
+      newOpts["channel"] = "__BGS";
+    }
+    return va5.Bgm.playBgm(path, newOpts);
+  };
+  /**
+   * va5.playBgs(path, opts)
+   * va5.bgs()のalias。
+   */
+  va5.playBgs = va5.bgs; // alias
+
+  /**
    * va5.voice(path, opts) / va5.voice(opts)
    * pathもしくはopts.pathをVoiceとして再生する。
    * optsの詳細は別セクションを参照。
-   * BGM/SEとは違い、何らかのチャンネル識別子を渡す事が必須。
    */
   va5.voice = function (path, opts) {
     va5._logDebug(["called va5.voice", path, opts]);

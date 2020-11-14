@@ -48,26 +48,116 @@ TODO
 ## TODO
 
 
-- https://qiita.com/zprodev/items/7fcd8335d7e8e613a01f にあるリーク対策等が組み込まれているか再確認
-    - きちんと組み込まれてるかと実際の動作の確認を行う事
-
 
 - オンラインデモの作成および設置
+    - つくった
     - m上のurlを決める
-        - http://va5.tir.jp/demo/demo.html
-            - 適切にindex.htmlを置く事(内容はgithubへのリンクだけでok)
-    - 「コピペ可能なサンプルコードを置いてます。コンソール開いてコピペ入力してみてください」で
+        - http://va5.tir.jp/demo/index.html
+            - 適当にindex.htmlを置く事
     - 以下の手順で作業を行う
-        - demo/dev.html に上記通りのサンプルコードを書く
-        - demo/demo.html をdev.htmlからコピーしてmin版を読むようにする
-            - できればsedとかで対応してMakefileで反映するようにしたい
-            - prod版をビルドし、 demo/va5.min.js にコピーする
-        - 上記に伴い、このDEV.md内の開発手順も修正
-        - mにオンラインデモ公開サイトの準備を行う
-            - サブドメイン切り
-            - httpd設定の追加
-        - Makefileにdemo配下のデプロイ手順を含める
+        - Makefileにdemo配下をva5.tir.jpにデプロイする手順を含める
             - 上記に伴い、このDEV.md内のデプロイ手順のところを記入
+            - ssh越しにファイルのコピーと反映をできるようにMakefileに仕込みたい
+                - 「sshでコマンド実行」は、sshの引数のホスト名以降に実行したいコマンドと引数をつけるだけでできるようだ
+                    - stdin経由でも実行できるようだ
+                        - `ssh hostname <<EOS ... EOS`
+                        - `ssh hostname < run.sh > result.txt`
+                - しかし、「sshでコマンド実行」「scpでファイル転送」の両方を一つのセッションで行う方法はないっぽい？
+                    - `ssh hostname 'cat > foo.zip' < foo.zip` のように転送する事は可能なので、この後にコマンド実行できればまあなんとか…しかし可能か？
+                - パスフレーズ入力が2回とかになっても別によいのでは？
+                    - でももうちょっと考える
+                    - 今はこれで。
+        - 上記に伴い、このDEV.md内の開発手順も修正(make deploy-demoを追加)
+
+
+
+- 一旦pushし、リファレンスのurlを確定させる
+    - その後、オンラインデモやREADME内のurlを修正する
+
+
+
+
+- npm登録できるようにする
+    - dist/ 配下にビルドした配布物を入れる
+        - 現在distはzip生成の用途に使っている、これはよくない。ちょっと考えて整理する必要がある
+    - npm pack --dry-run で、publishせずに同梱対象のファイルを確認できる
+        - これで、必要なjsファイル、externsファイル、mapファイル、README等が含まれ、不要なファイルは含まれない事を確認する
+    - npm除外ファイル指定を行う
+        - 必須ファイルについて
+            - package.json
+            - README.md
+            - REFERENCE.md
+            - LICENSE
+            - build/va5.js
+            - build/va5.js.map
+            - build/va5.min.js
+            - build/va5.min.js.map
+            - build/va5_externs.js
+        - 除外対象について
+            - DEV.md
+            - Makefile
+            - va5_logo.png
+            - demo/ 全て
+            - build/reference_dump.md
+            - build/reference_body.md
+            - build/reference_body2.md
+            - build/reference_header.txt
+                - (これらは build/reference_* とまとめてもよい)
+            - dist/ 配下のzip向けファイル関連
+            - 他にある？
+        - 迷うもの
+            - src/ いらないと思うが…
+        - 除外設定の方法を調べる事
+            - 昔は .npmignore というファイルに記述していたらしいが今は違うらしい
+
+http://liberty-technology.biz/PublicItems/npm/package.json.html より
+
+~~~
+"files" 項目はプロジェクトに含まれるファイルの配列です。 フォルダ名を指定した場合はフォルダの中のファイルも含まれます。 （他の設定により、そのファイルが無視されない場合です。）
+
+".npmignore" というファイルをパッケージのルートレベルに 設置することが出来ます。指定されたファイルは "files" の配列で指定されていたとしても、 対象から除外されます。".npmignore" ファイルは ".gitignore" ファイルとちょうど同じです。
+
+~~~
+
+- どうやったら普通に(cl)js環境からrequireできるようになる？
+    - pixiのpackage.jsonを見てみたら以下のようになっていた。この設定だけでいけるか？
+        - "main": "lib/pixi.js",
+        - "module": "lib/pixi.es.js",
+        - "bundle": "dist/pixi.js",
+        - ただ、package.json内にはmin版への参照が一切なかった。min版がないとサイズ的に困る気がするが…
+            - node_modules/pixi.js/dist/pixi.min.js 自体は存在している
+        - distはfull版、libは内部requireあり版、となっているようだ
+    - あとで普通のnpmパッケージの作法を調べる事
+
+
+
+
+
+
+
+
+
+
+
+
+- 公開準備は全て後回しにして、とりあえず「自分用に使える」ところまで優先して進める
+    - https://qiita.com/zprodev/items/7fcd8335d7e8e613a01f にあるリーク対策等が組み込まれているか再確認
+        - きちんと組み込まれてるかと実際の動作の確認を行う事
+    - android実機およびiOSエミュでの動作確認を取る
+        - 古いiOS上でgetNowMsecが想定通り動くか確認を取る事
+        - タッチのみで動作確認が取れるところまで実装を進める事
+            - そうしないとandroidとiOSで動作確認が取れない…
+        - この為にはオンラインデモを用意する必要がある。どう実装するか考える事
+    - 初回リリース作業
+        - ChangeLogの場所の確保
+        - タグ付けとか
+    - ...
+    - ...
+    - ...
+
+
+- npmの流儀に合わせて、documentationをnode_modulesにインストールするようにする
+
 
 
 
@@ -100,49 +190,6 @@ TODO
 ~~~
 
 
-- android実機およびiOSエミュでの動作確認を取る
-    - 古いiOS上でgetNowMsecが想定通り動くか確認を取る事
-    - タッチのみで動作確認が取れるところまで実装を進める事
-        - そうしないとandroidとiOSで動作確認が取れない…
-    - この為にはオンラインデモを用意する必要がある。どう実装するか考える事
-
-
-
-- npm登録できるようにする
-    - dist/ 配下にビルドした配布物を入れる？
-    - npm pack --dry-run で、publishせずに同梱対象のファイルを確認できるようだ
-        - 以下を除外したい
-            - demo/ 全て
-            - build/reference_dump.md
-            - build/reference_body.md
-            - build/reference_body2.md
-            - build/reference_header.txt
-                - (これらは build/reference_* とまとめてもよい)
-            - *.zip (正確なファイル名は未定)
-            - dist/
-                - この中に必要なファイルをコピーしたディレクトリを作ってからzipに固める？
-                    - zipに固める際のディレクトリ名を指定したいなら、そうする必要があるのでは…
-    - これで、必要なjsファイル、externsファイル、mapファイル、README等が含まれ、不要なファイルは含まれない事を確認する
-        - 不要なファイルについても別に含まれてもよいのでは？
-            - ソース関連については含まれてもよいが、demo配下のテスト用音源ファイルとかは含めたくない
-            - 個別の除外設定ができればよい。やり方を調べる事
-                - 昔は .npmignore というファイルに記述していたらしいが今は違うらしい
-
-http://liberty-technology.biz/PublicItems/npm/package.json.html より
-
-~~~
-"files" 項目はプロジェクトに含まれるファイルの配列です。 フォルダ名を指定した場合はフォルダの中のファイルも含まれます。 （他の設定により、そのファイルが無視されない場合です。）
-
-".npmignore" というファイルをパッケージのルートレベルに 設置することが出来ます。指定されたファイルは "files" の配列で指定されていたとしても、 対象から除外されます。".npmignore" ファイルは ".gitignore" ファイルとちょうど同じです。
-
-
-
-~~~
-
-
-
-- 初回リリース作業
-    - タグ付けとか
 
 
 

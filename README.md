@@ -5,12 +5,13 @@
 
 html5環境の為の、ゲーム向け音響ファイル再生ライブラリ(WebAudio使用)
 
+(※現在まだ未完成です。完動品として [vnctst-audio4](https://github.com/ayamada/vnctst-audio4) もあります)
+
 
 # 目次
 
 - [特徴](#特徴)
 - [使い方](#使い方)
-- [オンラインデモ](#オンラインデモ)
 - [FAQ](#faq)
 - [用語集](#glossary)
 - [開発](#development)
@@ -59,14 +60,11 @@ html5環境の為の、ゲーム向け音響ファイル再生ライブラリ(We
 
 # 使い方
 
-現在準備中
+- http://va5.tir.jp/demo/index.html
 
-リファレンスは [REFERENCE.md](REFERENCE.md) を参照
+オンラインデモおよびコードサンプルも兼ねています。
 
-
-# オンラインデモ
-
-現在準備中
+リファレンスは [REFERENCE.md](REFERENCE.md) を参照。
 
 
 # FAQ
@@ -146,5 +144,5 @@ zlib風ライセンスとします。
 # ChangeLog
 
 - 1.0.0 (2020-XX-XX)
-    - 公開開始
+    - 正式リリース予定
 

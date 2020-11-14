@@ -1,9 +1,10 @@
-.PHONY: all clean deps check-device-spec build dist
+.PHONY: all clean deps check-device-spec build dist deploy-demo
 
 
 CC = closure-compiler
 CC_OPTS = --charset UTF-8
 # --language_out ECMASCRIPT5 もしくは ECMASCRIPT5_STRICT を指定してもよい
+# (指定なしでもes5になっているように書いている筈だが…)
 
 
 VA5_SRCS := src/va5_license.js src/polyfill.js $(wildcard src/va5/*.js) src/va5_version.js src/va5_interface.js src/va5_ccinfo.js
@@ -21,6 +22,11 @@ clean:
 	-rm -f .*-ok build/* dist/va5/*
 	-rmdir dist/va5/
 	-rm -f dist/*
+	-rm -f demo/va5.min.js
+	-rm -f demo/va5.min.js.map
+	-rm -f demo/index.html
+
+
 
 
 .deps-ok:
@@ -81,10 +87,26 @@ REFERENCE.md: .deps-ok src/reference_header.md src/reference_footer.md src/va5_i
 dist: clean deps build REFERENCE.md
 	mkdir -p dist/va5
 	cp build/* dist/va5
-	#cp package.json dist/va5
 	cp README.md dist/va5
+	cp REFERENCE.md dist/va5
 	cp LICENSE dist/va5
 	(cd dist && zip -r va5-$(VA5_VERSION).zip va5)
+
+
+demo/index.html: build
+	cp build/va5.min.js demo/
+	cp build/va5.min.js.map demo/
+	node -e 'var html = require("fs").readFileSync("demo/dev.html", "utf-8"); process.stdout.write(html.replace(/VA5_SRCS(.*?)VA5_SRCS/s, "--><script type=\"text/javascript\" src=\"va5.min.js\"></script><!--"));' > demo/index.html
+
+
+deploy-demo: demo/index.html
+	@echo 'sorry, please login twice'
+	ssh m 'drop htdocs.va5.tir.jp/demo/ || true'
+	scp -r demo m:htdocs.va5.tir.jp/ || echo 'failed to upload demo'
+	@echo 'succeeded to upload demo'
+
+
+
 
 
 # TODO: npmにデプロイできるようにする

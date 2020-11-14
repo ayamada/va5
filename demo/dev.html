@@ -22,7 +22,7 @@ section {
     <title>va5 demo</title>
   </head>
   <body style="background-color:black; color:white; padding:0; margin:0; overscroll-behavior:none;">
-    <!-- See VA5_SRCS in Makefile -->
+    <!-- VA5_SRCS -->
     <script type="text/javascript" src="../src/polyfill.js"></script>
     <script type="text/javascript" src="../src/va5/Assert.js"></script>
     <script type="text/javascript" src="../src/va5/Config.js"></script>
@@ -39,12 +39,12 @@ section {
     <script type="text/javascript" src="../src/va5_version.js"></script>
     <script type="text/javascript" src="../src/va5_interface.js"></script>
     <script type="text/javascript" src="../src/va5_ccinfo.js"></script>
-    <!-- See VA5_SRCS in Makefile -->
+    <!-- VA5_SRCS -->
 
     <div id="github-ribbon"><a href="https://github.com/ayamada/va5" target="_blank"><img alt="Fork me on GitHub" data-canonical-src="https://s3.amazonaws.com/github/ribbons/forkme_right_red_aa0000.png" src="https://camo.githubusercontent.com/365986a132ccd6a44c23a9169022c0b5c890c387/68747470733a2f2f73332e616d617a6f6e6177732e636f6d2f6769746875622f726962626f6e732f666f726b6d655f72696768745f7265645f6161303030302e706e67" style="position: absolute; top: 0; right: 0; border: 0; z-index: 10000"></a></div>
 
     <div style="background-color:white; color:black; padding:0.5em; margin:0.5em;">
-      <h1>va5 online demo</h1>
+      <h1 id="top">va5 online demo</h1>
       <div><a href="https://github.com/ayamada/va5">(va5 github repository)</a></div>
       <nav id="toc">
         <!-- TODO: 可能ならjsでtocを生成する事 -->
@@ -60,17 +60,16 @@ section {
       <div>
         ここには、va5のサンプルコード例を掲載しています。<br />
         ここのサンプルコードは、このページにてブラウザのjsコンソールを開いてコピペする事で即座に動作を試す事ができます。<br />
-        また、このページでは以下のjs定義がなされており、コンソールから <code>se1</code> <code>bgm1</code> 等を参照する事ができます。
+        また、このページでは以下のjs定義がなされており、コンソールから <code>sound1</code> <code>music1</code> 等を参照する事ができます。
       </div>
 
       <pre id="initCode"><code>
-var se1 = "./kick.m4a";
-var se2 = "./piin.m4a";
-var bgm1 = "./cntr2.m4a";
-var bgm2 = "./dandd.m4a";
+var sound1 = "./kick.m4a";
+var sound2 = "./piin.m4a";
+var music1 = "./cntr2.m4a";
+var music2 = "./dandd.m4a";
 
 va5.setConfig("is-pause-on-background", true);
-//va5.setConfig("is-use-dumb-mode-forcibly", true);
 va5.setConfig("is-output-error-log", true);
 va5.setConfig("is-output-debug-log", true);
       </code></pre>
@@ -90,15 +89,15 @@ va5.setConfig("is-output-debug-log", true);
       <section id="play_se">
         <div>SEを鳴らす</div>
         <div><code>va5.se("./kick.m4a")</code></div>
-        <div><code>va5.se(se1)</code></div>
-        <div><code>va5.se({path:se2})</code></div>
+        <div><code>va5.se(sound1)</code></div>
+        <div><code>va5.se({path:sound2})</code></div>
       </section>
 
       <section id="play_loop_bgm">
         <div>ループBGMを鳴らす</div>
         <div><code>va5.bgm("./cntr2.m4a")</code></div>
-        <div><code>va5.bgm(bgm1)</code></div>
-        <div><code>va5.bgm({path:bgm2})</code></div>
+        <div><code>va5.bgm(music1)</code></div>
+        <div><code>va5.bgm({path:music2})</code></div>
       </section>
 
       <section id="stop_bgm">
@@ -110,8 +109,8 @@ va5.setConfig("is-output-debug-log", true);
 
       <section id="play_nonloop_bgm">
         <div>非ループBGMを鳴らす</div>
-        <div><code>va5.bgm(bgm1, {playEnd:0})</code></div>
-        <div><code>va5.bgm({path:bgm2, playEndSec:0})</code></div>
+        <div><code>va5.bgm(music1, {playEnd:0})</code></div>
+        <div><code>va5.bgm({path:music2, playEndSec:0})</code></div>
         <div><code>va5.bgm("./cntr2.m4a#__NL")</code></div>
         <div><small>(※この "#" を使う書き方は非推奨。そうではなく、ファイル名自体を変更し、拡張子直前の位置に "__NL" の指定を入れるのがよいです。この場合はファイル名を cntr2__NL.m4a とする事になります。NL前のアンダーバーは半角二個です)</small></div>
       </section>
@@ -122,14 +121,14 @@ va5.setConfig("is-output-debug-log", true);
 
       <section id="play_options">
         <div>BGM再生時のパラメータを指定する</div>
-        <div><code>va5.bgm(bgm1, {volume:0.5, pitch:0.5, pan:-1.0, fadeinSec:1.5})</code></div>
-        <div><code>va5.bgm({path:bgm2, channel:"BGS"})</code></div>
+        <div><code>va5.bgm(music1, {volume:0.5, pitch:0.5, pan:-1.0, fadeinSec:1.5})</code></div>
+        <div><code>va5.bgm({path:music2, channel:"extra_bgm"})</code></div>
         <div><small>(※個別の設定項目については<a href="https://github.com/ayamada/va5/REFERENCE.md">リファレンス</a>を参照)</small></div>
       </section>
 
       <section id="stop_options">
         <div>BGM停止するチャンネルとフェードアウト秒数を指定する</div>
-        <div><code>va5.stopBgm("BGS", 2.5)</code></div>
+        <div><code>va5.stopBgm("extra_bgm", 2.5)</code></div>
       </section>
 
       <section id="set_config">
@@ -150,9 +149,9 @@ va5.setConfig("is-output-debug-log", true);
 
       <section id="load">
         <div>音源をバックグラウンドでプリロード予約する</div>
-        <div><code>va5.load(bgm1)</code></div>
-        <div><code>va5.load({path:bgm1})</code></div>
-        <div><code>va5.load(bgm2, function () { console.log("va5.isError() ", va5.isError(bgm2)); })</code></div>
+        <div><code>va5.load(music1)</code></div>
+        <div><code>va5.load({path:music1})</code></div>
+        <div><code>va5.load(music2, function () { console.log("va5.isError() ", va5.isError(music2)); })</code></div>
         <div><code>va5.load("./not-found.m4a", function () { console.log("va5.isError() ", va5.isError("./not-found.m4a")); })</code></div>
         <div><small>(プリロードせずに再生する事も可能です。その場合は内部で勝手にプリロードを行い、ロードが完了してから再生が行われます)</small></div>
         <div><small>(※第二引数に関数を指定した場合、既にプリロード済なら即座に関数が実行されます。まだの場合はプリロード完了後に関数が実行されますがプリロードが失敗した場合にも実行されるので、成功したかどうかが重要な場合は必ず va5.isError() で成功した事を確認してください)</small></div>
@@ -160,27 +159,27 @@ va5.setConfig("is-output-debug-log", true);
 
       <section id="isError">
         <div>プリロード実行が失敗していないか判断する</div>
-        <div><code>va5.load(bgm2, function () { console.log("va5.isError() ", va5.isError(bgm2)); })</code></div>
+        <div><code>va5.load(music2, function () { console.log("va5.isError() ", va5.isError(music2)); })</code></div>
         <div><code>va5.load("./not-found.m4a", function () { console.log("va5.isError() ", va5.isError("./not-found.m4a")); })</code></div>
         <div><small>(まだプリロードが完了していない場合や、そもそもプリロードしていないファイルを判定した場合は偽値が返ります)</small></div>
       </section>
 
       <section id="isLoading">
         <div>プリロード中かどうか判断する</div>
-        <div><code>va5.load(bgm1); console.log("va5.isLoading() ", va5.isLoading(bgm1)); })</code></div>
+        <div><code>va5.load(music1); console.log("va5.isLoading() ", va5.isLoading(music1)); })</code></div>
       </section>
 
       <section id="isCancelled">
         <div>プリロード処理がキャンセルされたか判断する</div>
-        <div><code>console.log("va5.isCancelled() ", va5.isCancelled(bgm1))</code></div>
+        <div><code>console.log("va5.isCancelled() ", va5.isCancelled(music1))</code></div>
         <div><small>(※そもそもプリロードしていないファイルを判定した場合にも真値が返ります)</small></div>
         <div><small>(キャンセルは通常は発生しませんが、後述のunloadを実行するとタイミングによっては発生します)</small></div>
       </section>
 
       <section id="unload">
         <div>ロードされた音源をアンロードする</div>
-        <div><code>va5.unload(bgm1)</code></div>
-        <div><code>va5.unload({path:bgm2})</code></div>
+        <div><code>va5.unload(music1)</code></div>
+        <div><code>va5.unload({path:music2})</code></div>
         <div><small>(va5は再生対象の音源を内部で保持し続けるので音源の量が多い場合はメモリを消費します。これを避けるには、再生する必要のなくなった音源をアンロードする必要があります)</small></div>
         <div><small>(一度アンロードした後も、また再生しようとすれば再度ロード処理が行われて正常に再生されます)</small></div>
         <div><small>(※再生中の音源をアンロードすると途中で再生が強制終了されます)</small></div>
@@ -188,8 +187,8 @@ va5.setConfig("is-output-debug-log", true);
 
       <section id="unloadIfUnused">
         <div>音源がプリロード中/再生中でない場合に限りアンロードする</div>
-        <div><code>va5.unloadIfUnused(bgm1)</code></div>
-        <div><code>va5.unloadIfUnused({path:bgm2})</code></div>
+        <div><code>va5.unloadIfUnused(music1)</code></div>
+        <div><code>va5.unloadIfUnused({path:music2})</code></div>
       </section>
 
       <section id="unloadAll">
@@ -211,7 +210,7 @@ va5.setConfig("is-output-debug-log", true);
       <section id="getBgmPos">
         <div>BGMチャンネルを指定し、再生中のBGMの現在の再生位置(秒)を取得(音ゲー向き)</div>
         <div><code>va5.getBgmPos()</code></div>
-        <div><code>va5.getBgmPos("_bgm")</code></div>
+        <div><code>va5.getBgmPos("extra_bgm")</code></div>
       </section>
 
       <section id="advanced_misc">
@@ -224,10 +223,9 @@ va5.setConfig("is-output-debug-log", true);
 
       <section id="play_voice">
         <div>ボイス再生する</div>
-        <div><code>va5.voice(se1, {channel:"キャラ名"})</code></div>
-        <div><code>va5.voice({path:se2, channel:"キャラ名"})</code></div>
-        <div><small>(ボイス再生にはchannel指定が必須)</small></div>
-        <div><small>(その他のオプションについてはBGMと大体同じ)</small></div>
+        <div><code>va5.voice(sound1, {channel:"キャラ名"})</code></div>
+        <div><code>va5.voice({path:sound2, channel:"キャラ名"})</code></div>
+        <div><small>(オプションについてはBGMと大体同じ)</small></div>
       </section>
 
       <section id="stop_voice">
@@ -237,7 +235,7 @@ va5.setConfig("is-output-debug-log", true);
 
       <hr />
 
-      <div><a href="#toc">▲一番上に戻る</a></div>
+      <div><a href="#top">▲一番上に戻る</a></div>
 
     </div>
   </body>

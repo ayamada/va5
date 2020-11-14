@@ -26,8 +26,10 @@
 
 
   // bgmでch省略をした時に使われるch名
-  // (voiceではch指定が必須)
-  var defaultBgmCh = "_bgm";
+  var defaultBgmCh = "__BGM";
+
+  // voiceでch省略をした時に使われるch名
+  var defaultVoiceCh = "__VOICE";
 
 
   // pchとchについて。pchはprefixつきch、chはprefixなしch。
@@ -240,11 +242,7 @@
     var ch = opts["channel"];
 
     if (isVoice) {
-      // voiceの場合はch指定は必須
-      if (ch == null) {
-        va5._logError("va5.voice() must need channel option");
-        return;
-      }
+      if (ch == null) { ch = defaultVoiceCh; }
       ch = va5._validateVoiceCh(ch);
     }
     else {

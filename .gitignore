@@ -8,4 +8,5 @@
 /dist/
 
 demo/va5.min.js
-demo/demo.html
+demo/va5.min.js.map
+demo/index.html
