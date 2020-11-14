@@ -68,9 +68,9 @@ http://va5.tir.jp/demo/ にオンラインデモがあります。
 
 ## Install
 
-- `npm i va5` して `const { va5 } = require("va5");`
+- おそらく `npm i va5` して `import * as va5 from "va5"` (未確認)
 
-- もしくは、githubのreleaseページからzipをダウンロードして `va5.min.js` を取り出し `script` タグで読み込む
+- もしくは、githubのreleaseページからzipをダウンロードして `va5.min.js` を取り出し `script` タグで読み込む(確認済)
 
 
 # FAQ
@@ -151,6 +151,9 @@ zlib風ライセンスとします。
 
 - X.0.0 (2020-XX-XX)
     - 正式リリース(予定)
+
+- 0.1.0 (2020-11-14)
+    - 試験リリース2
 
 - 0.0.1 (2020-11-14)
     - 試験リリース(まだ実装が不完全)

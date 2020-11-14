@@ -21,15 +21,16 @@ http://localhost:8001/demo/dev.html
 ## リリース手順
 
 1. `npm version major|minor|patch` 相当を行う
-2. README.md内ChangeLogセクションに内容を記入しコミット
-3. `git tag -a vX.Y.Z -m '...'` でタグを打つ
-4. `git push && git push origin --tags`
-5. (optional) `make deploy-demo`
-6. (以下は、将来的にはgithub actionsに全部やらせたい)
-7. (optional) `npm login`
-8. (optional) `make deploy-npm-dry-run`
-9. `make deploy-npm`
-10. githubのtagsページにてリリース処理
+2. README.md内ChangeLogセクションに内容を記入
+3. `git commit ...`
+4. `git tag -a vX.Y.Z -m '...'` でタグを打つ
+5. `git push && git push origin --tags`
+6. (optional) `make deploy-demo`
+7. (以下は、将来的にはgithub actionsに全部やらせたい)
+8. (optional) `npm login`
+9. (optional) `make deploy-npm-dry-run`
+10. `make deploy-npm`
+11. githubのtagsページにてリリース処理
 
 
 ## オンラインデモ兼リファレンスのリリースビルド生成およびデプロイ手順

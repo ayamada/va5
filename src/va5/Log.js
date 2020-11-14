@@ -1,6 +1,8 @@
 (function(exports) {
   "use strict";
-  var va5 = exports.va5 || {}; exports.va5 = va5;
+  var va5 = (function (k) {
+    va5 = exports[k] || {}; exports[k] = va5; return va5;
+  })(("[object Object]" !== exports.toString()) ? "va5" : "exports");
   var Log = va5.Log || {}; va5.Log = Log;
 
   Log.error = function (logObj) {

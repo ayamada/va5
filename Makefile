@@ -42,7 +42,7 @@ deps: .deps-ok ;
 
 
 src/va5_version.js: .deps-ok package.json
-	echo '(function(exports) { "use strict"; var va5 = exports.va5 || {}; exports.va5 = va5; va5.version =' `cat package.json|jq .version` '; })(this);' > src/va5_version.js
+	echo '(function(exports) { "use strict"; var va5 = (function (k) { va5 = exports[k] || {}; exports[k] = va5; return va5; })(("[object Object]" !== exports.toString()) ? "va5" : "exports"); va5.version =' `cat package.json|jq .version` '; })(this);' > src/va5_version.js
 
 
 src/va5_license.js: .deps-ok LICENSE
@@ -59,7 +59,7 @@ build/va5.js: src/*.js src/va5/*.js
 
 
 build/va5_externs.js: .deps-ok build/va5.js
-	node -e 'var modules = require("./build/va5.js"); console.log("var va5 = {};"); Object.keys(modules.va5).filter(function (k) { return !!k.match(/^[a-z]/); }).sort().forEach(function (k) { console.log("va5."+k+";"); });' > build/va5_externs.js
+	node -e 'var va5 = require("./build/va5.js").exports; console.log("var va5 = {};"); Object.keys(va5).filter(function (k) { return !!k.match(/^[a-z]/); }).sort().forEach(function (k) { console.log("va5."+k+";"); });' > build/va5_externs.js
 
 
 build/va5.min.js: .deps-ok build/va5.js build/va5_externs.js src/internal_externs.js
@@ -67,7 +67,7 @@ build/va5.min.js: .deps-ok build/va5.js build/va5_externs.js src/internal_extern
 
 
 .device-spec-ok: .deps-ok build/va5.js
-	node -e 'var va5 = require("./build/va5.js").va5; var waKeys = Object.keys(va5.Devices.WebAudio).sort(); var dumbKeys = Object.keys(va5.Devices.Dumb).sort(); if (JSON.stringify(waKeys) !== JSON.stringify(dumbKeys)) { console.log("WebAudio", waKeys); console.log("Dumb", dumbKeys); console.log("mismatched device-spec"); process.exitCode = 1; }'
+	node -e 'var va5 = require("./build/va5.js").exports; var waKeys = Object.keys(va5.Devices.WebAudio).sort(); var dumbKeys = Object.keys(va5.Devices.Dumb).sort(); if (JSON.stringify(waKeys) !== JSON.stringify(dumbKeys)) { console.log("WebAudio", waKeys); console.log("Dumb", dumbKeys); console.log("mismatched device-spec"); process.exitCode = 1; }'
 	touch .device-spec-ok
 
 
