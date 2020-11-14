@@ -107,7 +107,7 @@ deploy-demo: demo/index.html
 
 
 
-deploy-npm-dry-run:
+deploy-npm-dry-run: deps build REFERENCE.md
 	npm pack --dry-run
 
 

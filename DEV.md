@@ -25,9 +25,10 @@ http://localhost:8001/demo/dev.html
 3. `git tag -a vX.Y.Z -m '...'` でタグを打つ
 4. `git push && git push origin --tags`
 5. (以下は、将来的にはgithub actionsに全部やらせたい)
-5. (optional) `npm login`
-6. `make deploy-npm`
-7. githubのtagsページにてリリース処理
+6. (optional) `npm login`
+7. (optional) `make deploy-npm-dry-run`
+8. `make deploy-npm`
+9. githubのtagsページにてリリース処理
 
 
 ## オンラインデモ兼リファレンスのリリースビルド生成およびデプロイ手順
@@ -55,63 +56,6 @@ http://localhost:8001/demo/dev.html
 
 ## TODO
 
-- CommonJS方式でのexportが必要なようだ
-
-
-- npm登録できるようにする。また手順を確立する事
-    - npm登録自体は `npm publish` でできるらしい
-    - dist/ 配下にビルドした配布物を入れる？
-        - 現在distはzip生成の用途に使っている、これはよくない。ちょっと考えて整理する必要がある
-    - npm pack --dry-run で、publishせずに同梱対象のファイルを確認できる
-        - これで、必要なjsファイル、externsファイル、mapファイル、README等が含まれ、不要なファイルは含まれない事を確認する
-    - npm除外ファイル指定を行う
-        - 必須ファイルについて
-            - package.json
-            - README.md
-            - REFERENCE.md
-            - LICENSE
-            - build/va5.js
-            - build/va5.js.map
-            - build/va5.min.js
-            - build/va5.min.js.map
-            - build/va5_externs.js
-            - src/
-        - 除外対象について
-            - DEV.md
-            - Makefile
-            - va5_logo.png
-            - demo/ 全て
-            - build/reference_dump.md
-            - build/reference_body.md
-            - build/reference_body2.md
-            - build/reference_header.txt
-                - (これらは build/reference_* とまとめてもよい)
-            - dist/ 配下のzip向けファイル関連
-            - 他にある？
-        - 除外設定の方法を調べる事
-            - 昔は .npmignore というファイルに記述していたらしいが今は違うらしい
-
-http://liberty-technology.biz/PublicItems/npm/package.json.html より
-
-~~~
-"files" 項目はプロジェクトに含まれるファイルの配列です。 フォルダ名を指定した場合はフォルダの中のファイルも含まれます。 （他の設定により、そのファイルが無視されない場合です。）
-
-".npmignore" というファイルをパッケージのルートレベルに 設置することが出来ます。指定されたファイルは "files" の配列で指定されていたとしても、 対象から除外されます。".npmignore" ファイルは ".gitignore" ファイルとちょうど同じです。
-
-~~~
-
-- どうやったら普通に(cl)js環境からrequireできるようになる？
-    - pixiのpackage.jsonを見てみたら以下のようになっていた。この設定だけでいけるか？
-        - "main": "lib/pixi.js",
-        - "module": "lib/pixi.es.js",
-        - "bundle": "dist/pixi.js",
-        - ただ、package.json内にはmin版への参照が一切なかった。min版がないとサイズ的に困る気がするが…
-            - node_modules/pixi.js/dist/pixi.min.js 自体は存在している
-        - distはfull版、libは内部requireあり版、となっているようだ
-    - あとで普通のnpmパッケージの作法を調べる事
-
-
-
 
 - 以下の動作確認を取る事
     - https://qiita.com/zprodev/items/7fcd8335d7e8e613a01f にあるリーク対策等が組み込まれているか再確認
@@ -124,18 +68,13 @@ http://liberty-technology.biz/PublicItems/npm/package.json.html より
 
 
 
-- `npm publish` は、github actionsからのみ実行できるようにすべき！(手元で `npm login` して `npm publish` するのは色々と危険すぎる)
-    - npm側でアクセス制限できるらしい？
-
-
-
-
-
 - リファレンスが読みづらいので、jsdocの説明文の各行の末尾に半角スペース2個を入れて、きちんと改行されるようにする
     - めんどいので後で…
 
 
 
+- `make deploy-npm` の中で `npm publish` する前にconfirmを入れたい
+    - `are you ok? (y/N)` に `y` と入力するぐらいの奴でいいので
 
 
 
@@ -186,6 +125,12 @@ http://liberty-technology.biz/PublicItems/npm/package.json.html より
 [![release version](https://img.shields.io/github/release/ayamada/vnctst-audio4.svg)](https://github.com/ayamada/vnctst-audio4/releases)
 [![license](https://img.shields.io/github/license/ayamada/vnctst-audio4.svg)](LICENSE)
 ~~~
+
+
+
+
+- `npm publish` は、github actionsからのみ実行できるようにすべき！(手元で `npm login` して `npm publish` するのは色々と危険すぎる)
+    - npm側でアクセス制限できるらしい？
 
 
 

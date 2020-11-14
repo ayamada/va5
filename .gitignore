@@ -2,11 +2,10 @@
 /npm-debug.log
 /node_modules
 
-.deps-ok
-.device-spec-ok
+/.*-ok
 /build/
 /dist/
 
-demo/va5.min.js
-demo/va5.min.js.map
-demo/index.html
+/demo/va5.min.js
+/demo/va5.min.js.map
+/demo/index.html
