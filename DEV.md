@@ -26,7 +26,9 @@ TODO
 
 ## オンラインデモ兼リファレンスのリリースビルド生成およびデプロイ手順
 
-TODO
+山田専用
+
+`make clean deploy-demo`
 
 
 
@@ -48,31 +50,9 @@ TODO
 ## TODO
 
 
-
-- オンラインデモの作成および設置
-    - つくった
-    - m上のurlを決める
-        - http://va5.tir.jp/demo/index.html
-            - 適当にindex.htmlを置く事
-    - 以下の手順で作業を行う
-        - Makefileにdemo配下をva5.tir.jpにデプロイする手順を含める
-            - 上記に伴い、このDEV.md内のデプロイ手順のところを記入
-            - ssh越しにファイルのコピーと反映をできるようにMakefileに仕込みたい
-                - 「sshでコマンド実行」は、sshの引数のホスト名以降に実行したいコマンドと引数をつけるだけでできるようだ
-                    - stdin経由でも実行できるようだ
-                        - `ssh hostname <<EOS ... EOS`
-                        - `ssh hostname < run.sh > result.txt`
-                - しかし、「sshでコマンド実行」「scpでファイル転送」の両方を一つのセッションで行う方法はないっぽい？
-                    - `ssh hostname 'cat > foo.zip' < foo.zip` のように転送する事は可能なので、この後にコマンド実行できればまあなんとか…しかし可能か？
-                - パスフレーズ入力が2回とかになっても別によいのでは？
-                    - でももうちょっと考える
-                    - 今はこれで。
-        - 上記に伴い、このDEV.md内の開発手順も修正(make deploy-demoを追加)
-
-
-
 - 一旦pushし、リファレンスのurlを確定させる
     - その後、オンラインデモやREADME内のurlを修正する
+    - その後、 make deploy-demo すればよい
 
 
 

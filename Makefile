@@ -100,13 +100,17 @@ demo/index.html: build
 
 
 deploy-demo: demo/index.html
-	@echo 'sorry, please login twice'
 	ssh m 'drop htdocs.va5.tir.jp/demo/ || true'
 	scp -r demo m:htdocs.va5.tir.jp/ || echo 'failed to upload demo'
 	@echo 'succeeded to upload demo'
 
 
 
-
-
 # TODO: npmにデプロイできるようにする
+
+
+
+
+
+
+

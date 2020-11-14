@@ -60,7 +60,7 @@ html5環境の為の、ゲーム向け音響ファイル再生ライブラリ(We
 
 # 使い方
 
-- http://va5.tir.jp/demo/index.html
+- http://va5.tir.jp/demo/
 
 オンラインデモおよびコードサンプルも兼ねています。
 
