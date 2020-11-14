@@ -100,7 +100,7 @@ demo/index.html: build
 	node -e 'var html = require("fs").readFileSync("demo/dev.html", "utf-8"); process.stdout.write(html.replace(/VA5_SRCS(.*?)VA5_SRCS/s, "--><script type=\"text/javascript\" src=\"va5.min.js\"></script><!--"));' > demo/index.html
 
 
-deploy-demo: demo/index.html
+deploy-demo: clean build demo/index.html
 	ssh m 'bin/drop htdocs.va5.tir.jp/demo/ || true'
 	scp -r demo m:htdocs.va5.tir.jp/ || echo 'failed to upload demo'
 	@echo 'succeeded to upload demo'

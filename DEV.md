@@ -24,18 +24,19 @@ http://localhost:8001/demo/dev.html
 2. README.md内ChangeLogセクションに内容を記入しコミット
 3. `git tag -a vX.Y.Z -m '...'` でタグを打つ
 4. `git push && git push origin --tags`
-5. (以下は、将来的にはgithub actionsに全部やらせたい)
-6. (optional) `npm login`
-7. (optional) `make deploy-npm-dry-run`
-8. `make deploy-npm`
-9. githubのtagsページにてリリース処理
+5. (optional) `make deploy-demo`
+6. (以下は、将来的にはgithub actionsに全部やらせたい)
+7. (optional) `npm login`
+8. (optional) `make deploy-npm-dry-run`
+9. `make deploy-npm`
+10. githubのtagsページにてリリース処理
 
 
 ## オンラインデモ兼リファレンスのリリースビルド生成およびデプロイ手順
 
 山田専用
 
-`make clean deploy-demo`
+`make deploy-demo`
 
 
 
