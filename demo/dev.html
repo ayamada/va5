@@ -79,7 +79,7 @@ va5.setConfig("is-output-debug-log", true);
 
       <div>
         va5本体については<a href="https://github.com/ayamada/va5">github repository</a>を参照してください。<br />
-        サンプルコードの詳細については、<a href="https://github.com/ayamada/va5/REFERENCE.md">リファレンス</a>を参照してください。ここに書いていない機能もあります。
+        サンプルコードの詳細については、<a href="https://github.com/ayamada/va5/blob/master/REFERENCE.md">リファレンス</a>を参照してください。ここに書いていない機能もあります。
       </div>
 
       <hr />
@@ -123,7 +123,7 @@ va5.setConfig("is-output-debug-log", true);
         <div>BGM再生時のパラメータを指定する</div>
         <div><code>va5.bgm(music1, {volume:0.5, pitch:0.5, pan:-1.0, fadeinSec:1.5})</code></div>
         <div><code>va5.bgm({path:music2, channel:"extra_bgm"})</code></div>
-        <div><small>(※個別の設定項目については<a href="https://github.com/ayamada/va5/REFERENCE.md">リファレンス</a>を参照)</small></div>
+        <div><small>(※個別の設定項目については<a href="https://github.com/ayamada/va5/blob/master/REFERENCE.md">リファレンス</a>を参照)</small></div>
       </section>
 
       <section id="stop_options">
@@ -134,13 +134,13 @@ va5.setConfig("is-output-debug-log", true);
       <section id="set_config">
         <div>全体設定項目を変更する</div>
         <div><code>va5.setConfig("volume-master", 0.5)</code></div>
-        <div><small>(※個別の設定項目については<a href="https://github.com/ayamada/va5/REFERENCE.md">リファレンス</a>を参照)</small></div>
+        <div><small>(※個別の設定項目については<a href="https://github.com/ayamada/va5/blob/master/REFERENCE.md">リファレンス</a>を参照)</small></div>
       </section>
 
       <section id="get_config">
         <div>全体設定項目の現在値を参照する</div>
         <div><code>va5.getConfig("volume-master")</code></div>
-        <div><small>(※個別の設定項目については<a href="https://github.com/ayamada/va5/REFERENCE.md">リファレンス</a>を参照)</small></div>
+        <div><small>(※個別の設定項目については<a href="https://github.com/ayamada/va5/blob/master/REFERENCE.md">リファレンス</a>を参照)</small></div>
       </section>
 
       <hr />
@@ -214,7 +214,7 @@ va5.setConfig("is-output-debug-log", true);
       </section>
 
       <section id="advanced_misc">
-        <div><small>(※まだまだ他にも多数の機能があります、詳細は<a href="https://github.com/ayamada/va5/REFERENCE.md">リファレンス</a>を参照)</small></div>
+        <div><small>(※まだまだ他にも多数の機能があります、詳細は<a href="https://github.com/ayamada/va5/blob/master/REFERENCE.md">リファレンス</a>を参照)</small></div>
       </section>
 
       <hr />
@@ -226,6 +226,7 @@ va5.setConfig("is-output-debug-log", true);
         <div><code>va5.voice(sound1, {channel:"キャラ名"})</code></div>
         <div><code>va5.voice({path:sound2, channel:"キャラ名"})</code></div>
         <div><small>(オプションについてはBGMと大体同じ)</small></div>
+        <div><small>(voiceでは「同じキャラの台詞は同時に二つ再生しない」「違うキャラの台詞同士は同時に二つ以上再生できる」という要件を満たせるよう、常にchannel指定を行う事を推奨します)</small></div>
       </section>
 
       <section id="stop_voice">

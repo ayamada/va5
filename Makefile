@@ -100,7 +100,7 @@ demo/index.html: build
 
 
 deploy-demo: demo/index.html
-	ssh m 'drop htdocs.va5.tir.jp/demo/ || true'
+	ssh m 'bin/drop htdocs.va5.tir.jp/demo/ || true'
 	scp -r demo m:htdocs.va5.tir.jp/ || echo 'failed to upload demo'
 	@echo 'succeeded to upload demo'
 
