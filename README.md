@@ -60,11 +60,17 @@ html5環境の為の、ゲーム向け音響ファイル再生ライブラリ(We
 
 # 使い方
 
-- http://va5.tir.jp/demo/
+http://va5.tir.jp/demo/ にオンラインデモがあります。
+コードサンプルも兼ねています。
 
-オンラインデモおよびコードサンプルも兼ねています。
+詳細なリファレンスは [REFERENCE.md](REFERENCE.md) を参照(まだ整備中)。
 
-リファレンスは [REFERENCE.md](REFERENCE.md) を参照。
+
+## Install
+
+- `npm i va5` して `const { va5 } = require("va5");`
+
+- もしくは、githubのreleaseページからzipをダウンロードして `va5.min.js` を取り出し `script` タグで読み込む
 
 
 # FAQ
@@ -143,6 +149,9 @@ zlib風ライセンスとします。
 
 # ChangeLog
 
-- 1.0.0 (2020-XX-XX)
-    - 正式リリース予定
+- X.0.0 (2020-XX-XX)
+    - 正式リリース(予定)
+
+- 0.0.1 (2020-11-14)
+    - 試験リリース(まだ実装が不完全)
 

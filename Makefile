@@ -1,4 +1,5 @@
-.PHONY: all clean deps check-device-spec build dist deploy-demo
+.PHONY: all clean deps check-device-spec build dist deploy-demo deploy-npm-dry-run deploy-npm
+
 
 
 CC = closure-compiler
@@ -106,7 +107,13 @@ deploy-demo: demo/index.html
 
 
 
-# TODO: npmにデプロイできるようにする
+deploy-npm-dry-run:
+	npm pack --dry-run
+
+
+# TODO: npm publish の前にconfirmを入れたい
+deploy-npm: dist
+	npm publish
 
 
 

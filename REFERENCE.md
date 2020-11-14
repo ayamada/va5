@@ -8,12 +8,18 @@
 
 pathもしくはopts.pathをBGMとして再生する。
 pathがまだロードされていない場合はロードを行ってから再生する。
-(少しタイムラグが発生する)
+(内部でロード待ちが発生する)
 optsの詳細は別セクションを参照。
 既に別のBGMを再生中の場合は、まず再生中のBGMを
 va5.getConfig("default-bgm-fade-sec") かけて(デフォルト1秒)
 フェードアウト終了させてから、新しいBGMを再生する。
 pathにnullが指定された場合は va5.stopBgm() と同じ挙動となる。
+
+
+## va5.bgs(path, opts) / va5.bgs(opts)
+
+pathもしくはopts.pathをBGSとして再生する。
+内部動作の実体は channel=\_\_BGS として va5.bgm() を実行するだけ。
 
 
 ## va5.floatToPercent(f)
@@ -55,6 +61,8 @@ configパラメータ内容の取得。
 WebAudio非対応環境(Dumb)の場合は常に0が返る、注意。
 もしpathがObjectだった場合は、path.pathがpathとして参照される。
 (bgm/se/voiceの第一引数にObjectを渡す時と対称になる)
+※音源ファイルの形式によっては、不正確になる事があります。
+(勝手に無音部分が追加される場合がある為。詳細は他セクションを参照)
 
 
 ## va5.getNowMsec()
@@ -78,8 +86,11 @@ WebAudio非対応環境(Dumb)の場合は常に0が返る、注意。
 
 システム全体の初期化。
 最初に一度だけ行えばよい。二回目以上実行しても何もしない。
-大部分の関数で暗黙の内に実行しているので、通常は明示的に実行しなくてよい。
 一部のconfigパラメータは va5.init() よりも先に設定しておく必要がある。
+実行しなくても機能のしますが(再生時に内部でinitを実行している)、
+「タッチ操作」等によるWebAudioのresumeのフックは
+この va5.init() によって設定されるので、なるべく早い段階で
+実行しておく事をおすすめします。
 
 
 ## va5.isCancelled(path)
@@ -119,6 +130,8 @@ handleが指定された場合、事前ロードが正常終了かエラー終�
 もしpathが既にロード済の場合は、何もせず即座にhandleを実行する。
 もしpathがObjectだった場合は、path.pathがpathとして参照される。
 (bgm/se/voiceの第一引数にObjectを渡す時と対称になる)
+bgm/se/voiceの各再生関数は、pathが未load状態だった場合は内部で
+このva5.load()を実行してくれる(ロード完了後に再生が開始される)。
 
 
 ## va5.loadBuf(buf)
@@ -150,6 +163,11 @@ va5.se(path, opts)が実行される。ただし返された関数を毎フレ�
 va5.bgm()のalias。
 
 
+## va5.playBgs(path, opts)
+
+va5.bgs()のalias。
+
+
 ## va5.playSe(path, opts)
 
 va5.se()のalias。
@@ -165,7 +183,7 @@ va5.voice()のalias。
 pathもしくはopts.pathをSEとして再生し、そのチャンネルidを返す。
 チャンネルidはSEを途中で停止させる必要がなければそのまま捨てても問題ない。
 pathがまだロードされていない場合はロードを行ってから再生する。
-(少しタイムラグが発生する)
+(内部でロード待ちが発生する)
 optsの詳細は別セクションを参照。
 
 
@@ -209,7 +227,7 @@ fadeSecを指定しない場合はva5.getConfig("default-voice-fade-sec")の秒�
 ロード済のpathをメモリから解放する。
 このpathの全ての再生中のbgm/se/voiceは即座に再生停止する。
 pathがロード中だった場合はキャンセルされる。
-pathがロードされていない場合は何も起きない。
+pathがロードされていない/既にunload済の場合は何も起きない。安全。
 一度unloadしたpathを再度loadしたり再生しても問題ない。
 もしpathがObjectだった場合は、path.pathがpathとして参照される。
 (bgm/se/voiceの第一引数にObjectを渡す時と対称になる)
@@ -223,6 +241,7 @@ pathがロードされていない場合は何も起きない。
 ## va5.unloadAllIfUnused()
 
 全てをunloadIfUnusedする。
+※現在の実装はかなり重いです。あまり頻繁に実行しないようにしてください。
 
 
 ## va5.unloadIfUnused(path)
@@ -241,19 +260,20 @@ va5のバージョン文字列が入っている。
 
 pathもしくはopts.pathをVoiceとして再生する。
 optsの詳細は別セクションを参照。
-BGM/SEとは違い、何らかのチャンネル識別子を渡す事が必須。
 
 
 ## va5.getConfig("is-output-error-log")
 
 真なら、何らかのエラーがあった場合にその内容をコンソールに出力する。
 デフォルト値true。
+開発時は真にしておく事を推奨します。
 
 
 ## va5.getConfig("is-output-debug-log")
 
 真なら、非常に細かい動作情報ログをコンソールに出力する。
 デフォルト値false。
+通常はこれを真にする必要はありません。
 
 
 ## va5.getConfig("volume-master")
@@ -306,7 +326,7 @@ Voiceをフェードアウト終了させる際のデフォルトのフェード
 
 ## va5.getConfig("is-unload-automatically-when-finished-bgm")
 
-これが真値ならbgm終了時に自動的に va5.unloadIfUnused() を実行します。
+真値ならbgm/voiceの終了時に自動的に va5.unloadIfUnused() を実行します。
 デフォルト値false。
 
 
@@ -314,12 +334,15 @@ Voiceをフェードアウト終了させる際のデフォルトのフェード
 
 同一SEがこの秒数以内に連打された場合は再生を抑制する。
 デフォルト値0.05。
+※この値を動的に変更するのはおすすめしません。
+SE毎に変動させたい場合は va5.makePlaySePeriodically() を推奨します。
 
 
 ## va5.getConfig("is-use-dumb-mode-forcibly")
 
 常にDumbモード(無音モード)で起動する。デバッグ用。
 デフォルト値false。
+va5.init() 後にこの値を変更しても効果がありません。
 
 
 ## va5.getConfig("additional-query-string")

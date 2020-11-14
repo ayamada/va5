@@ -1,5 +1,6 @@
 # va5 開発メモ
 
+
 ## 開発手順
 
 ```
@@ -19,9 +20,14 @@ http://localhost:8001/demo/dev.html
 
 ## リリース手順
 
-TODO
-
-(タグ付けとか、その辺の手順まで書く事)
+1. `npm version major|minor|patch` 相当を行う
+2. README.md内ChangeLogセクションに内容を記入しコミット
+3. `git tag -a vX.Y.Z -m '...'` でタグを打つ
+4. `git push && git push origin --tags`
+5. (以下は、将来的にはgithub actionsに全部やらせたい)
+5. (optional) `npm login`
+6. `make deploy-npm`
+7. githubのtagsページにてリリース処理
 
 
 ## オンラインデモ兼リファレンスのリリースビルド生成およびデプロイ手順
@@ -49,20 +55,12 @@ TODO
 
 ## TODO
 
-
-- リファレンスが読みづらいので、jsdocの説明文の各行の末尾に半角スペース2個を入れて、きちんと改行されるようにする
-    - めんどいので後で…
+- CommonJS方式でのexportが必要なようだ
 
 
-- 一旦pushし、リファレンスのurlを確定させる
-    - その後、オンラインデモやREADME内のurlを修正する
-    - その後、 make deploy-demo すればよい
-
-
-
-
-- npm登録できるようにする
-    - dist/ 配下にビルドした配布物を入れる
+- npm登録できるようにする。また手順を確立する事
+    - npm登録自体は `npm publish` でできるらしい
+    - dist/ 配下にビルドした配布物を入れる？
         - 現在distはzip生成の用途に使っている、これはよくない。ちょっと考えて整理する必要がある
     - npm pack --dry-run で、publishせずに同梱対象のファイルを確認できる
         - これで、必要なjsファイル、externsファイル、mapファイル、README等が含まれ、不要なファイルは含まれない事を確認する
@@ -77,6 +75,7 @@ TODO
             - build/va5.min.js
             - build/va5.min.js.map
             - build/va5_externs.js
+            - src/
         - 除外対象について
             - DEV.md
             - Makefile
@@ -89,8 +88,6 @@ TODO
                 - (これらは build/reference_* とまとめてもよい)
             - dist/ 配下のzip向けファイル関連
             - 他にある？
-        - 迷うもの
-            - src/ いらないと思うが…
         - 除外設定の方法を調べる事
             - 昔は .npmignore というファイルに記述していたらしいが今は違うらしい
 
@@ -116,15 +113,7 @@ http://liberty-technology.biz/PublicItems/npm/package.json.html より
 
 
 
-
-
-
-
-
-
-
-
-- 公開準備は全て後回しにして、とりあえず「自分用に使える」ところまで優先して進める
+- 以下の動作確認を取る事
     - https://qiita.com/zprodev/items/7fcd8335d7e8e613a01f にあるリーク対策等が組み込まれているか再確認
         - きちんと組み込まれてるかと実際の動作の確認を行う事
     - android実機およびiOSエミュでの動作確認を取る
@@ -132,15 +121,41 @@ http://liberty-technology.biz/PublicItems/npm/package.json.html より
         - タッチのみで動作確認が取れるところまで実装を進める事
             - そうしないとandroidとiOSで動作確認が取れない…
         - この為にはオンラインデモを用意する必要がある。どう実装するか考える事
-    - 初回リリース作業
-        - ChangeLogの場所の確保
-        - タグ付けとか
-    - ...
-    - ...
-    - ...
 
 
-- npmの流儀に合わせて、documentationをnode_modulesにインストールするようにする
+
+- `npm publish` は、github actionsからのみ実行できるようにすべき！(手元で `npm login` して `npm publish` するのは色々と危険すぎる)
+    - npm側でアクセス制限できるらしい？
+
+
+
+
+
+- リファレンスが読みづらいので、jsdocの説明文の各行の末尾に半角スペース2個を入れて、きちんと改行されるようにする
+    - めんどいので後で…
+
+
+
+
+
+
+
+
+- npmの流儀に合わせて、以下をnode_modulesにインストールして使うようにする
+    - closure-compiler
+    - jq
+    - documentation
+
+- github actions登録する
+    - ビルド
+        - リリースの為に必須。その為には上記コマンド群が必要なので先に対応する事
+    - テスト
+        - これ無理では…
+    - リリース(zip生成)
+        - もしzipコマンドが使えない場合は、npmのarchiverを使うしかない
+
+
+
 
 
 
@@ -148,14 +163,13 @@ http://liberty-technology.biz/PublicItems/npm/package.json.html より
 
 - itch.io上に置いてみて動作確認
     - アツマールはWebAudioのアクティベートの特別対応コードが組み込まれているので、itch.ioは個別に動作確認を取っておきたい
+        - itch.ioも同様では？その場合は自サーバで動作確認を取る必要が…
     - スマホでの動作確認が必要な為、banker3等に組み込んでちょっとしたミニゲームを実装する必要あり(Ｄ＆Ｄレベルでよい)
     - androidでの動作確認
     - safariでの動作確認
     - iOS simulatorでの動作確認
     - ieでの動作確認
 
-
-- github actionsでビルドテスト実行するように設定する
 
 - READMEに各種バッヂを入れる
     - buildバッヂ
