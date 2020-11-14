@@ -22,10 +22,10 @@ http://localhost:8001/demo/dev.html
 
 1. `npm version major|minor|patch` 相当を行う
 2. README.md内ChangeLogセクションに内容を記入
-3. `git commit ...`
-4. `git tag -a vX.Y.Z -m '...'` でタグを打つ
-5. `git push && git push origin --tags`
-6. (optional) `make deploy-demo`
+3. (optional) `make deploy-demo`
+4. `git commit ...`
+5. `git tag -a vX.Y.Z -m '...'` でタグを打つ
+6. `git push && git push origin --tags`
 7. (以下は、将来的にはgithub actionsに全部やらせたい)
 8. (optional) `npm login`
 9. (optional) `make deploy-npm-dry-run`
