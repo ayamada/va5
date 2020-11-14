@@ -59,6 +59,7 @@ http://localhost:8001/demo/dev.html
 ## TODO
 
 
+
 - 以下の動作確認を取る事
     - https://qiita.com/zprodev/items/7fcd8335d7e8e613a01f にあるリーク対策等が組み込まれているか再確認
         - きちんと組み込まれてるかと実際の動作の確認を行う事
@@ -137,6 +138,9 @@ http://localhost:8001/demo/dev.html
 
 
 
+- 十分にバグが取れたら、package.jsonのmainをmin版に変更する
+
+
 
 
 - playBgmの新オプションとして「今流してるoneshotのbgmが終わったら次にこれを再生する」機能を追加
@@ -150,13 +154,7 @@ http://localhost:8001/demo/dev.html
     - がんばって実装しても普段は使わなさそうなので、リリース後のTODOとする事に
 
 
-
-## その他のメモ
-
-- ffmpegでm4aを生成する場合のオプション指定
-    - `ffmpeg -i input.wav -vn -ac 1 -ar 44100 -ab 64k -acodec aac output.m4a`
-        - `-ac` 1で強制モノラル、2でステレオ
-        - `-ab` でビットレート指定。m4aは32k～64kでも実用範囲内(mp3だとボロボロになる)
+- ドキュメント等の英語対応
 
 
 ## ファイル形式についての考察
