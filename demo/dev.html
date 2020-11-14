@@ -227,7 +227,7 @@ va5.setConfig("is-output-debug-log", true);
         <div><code>va5.voice(sound1, {channel:"キャラ名"})</code></div>
         <div><code>va5.voice({path:sound2, channel:"キャラ名"})</code></div>
         <div><small>(オプションについてはBGMと大体同じ)</small></div>
-        <div><small>(voiceでは「同じキャラの台詞は同時に二つ再生しない」「違うキャラの台詞同士は同時に二つ以上再生できる」という要件を満たせるよう、常にchannel指定を行う事を推奨します)</small></div>
+        <div><small>(voiceでは「同じキャラの台詞同士は同時に二つ重ねて再生できない(片方のみになる)」「違うキャラの台詞同士は同時に二つ以上重ねて再生できる」という要件を満たせるよう、常にchannel指定を行う事を推奨します)</small></div>
       </section>
 
       <section id="stop_voice">
