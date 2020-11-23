@@ -60,6 +60,7 @@ http://localhost:8001/demo/dev.html
 
 
 
+
 - 以下の動作確認を取る事
     - https://qiita.com/zprodev/items/7fcd8335d7e8e613a01f にあるリーク対策等が組み込まれているか再確認
         - きちんと組み込まれてるかと実際の動作の確認を行う事

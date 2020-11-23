@@ -370,6 +370,14 @@
    */
   va5.playBgm = va5.bgm; // alias
 
+  function copyObjShallowly (o) {
+    if (o == null) { return null; }
+    if (Object.assign) { return Object.assign({}, o); }
+    var newObj = {};
+    Object.keys(o).forEach(function (k) { newObj[k] = o[k]; });
+    return newObj;
+  }
+
   /**
    * va5.bgs(path, opts) / va5.bgs(opts)
    * pathもしくはopts.pathをBGSとして再生する。
@@ -379,18 +387,8 @@
     va5._logDebug(["called va5.bgs", path, opts]);
     va5.init();
     if ((opts == null) && va5.Util.isObject(path)) { opts = path; path = opts.path; }
-    var newOpts = null;
-    if (opts == null) {
-    }
-    else if (Object.assign) {
-      newOpts = Object.assign({}, opts);
-      newOpts["channel"] = "__BGS";
-    }
-    else {
-      newOpts = {};
-      Object.keys(opts).forEach(function (k) { newOpts[k] = opts[k]; });
-      newOpts["channel"] = "__BGS";
-    }
+    var newOpts = copyObjShallowly(opts);
+    if (opts != null) { newOpts["channel"] = "__BGS"; }
     return va5.Bgm.playBgm(path, newOpts);
   };
   /**
@@ -425,6 +423,18 @@
   va5.stopBgm = function (ch, fadeSec) {
     va5._logDebug(["called va5.stopBgm", ch, fadeSec]);
     va5.init();
+    va5.Bgm.stopBgm(ch, fadeSec);
+  };
+  /**
+   * va5.stopBgs(ch, fadeSec)
+   * 指定したchのBGSの再生をfadeSec秒かけてフェードアウト終了する。
+   * fadeSecを指定しない場合はva5.getConfig("default-bgm-fade-sec")の秒数が
+   * 適用される。デフォルト値1秒。
+   */
+  va5.stopBgm = function (ch, fadeSec) {
+    va5._logDebug(["called va5.stopBgs", ch, fadeSec]);
+    va5.init();
+    if (ch == null) { ch = "__BGS"; }
     va5.Bgm.stopBgm(ch, fadeSec);
   };
   /**
