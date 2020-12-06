@@ -1,1 +1,1 @@
-(function(exports) { "use strict"; var va5 = (function (k) { va5 = exports[k] || {}; exports[k] = va5; return va5; })(("[object Object]" !== exports.toString()) ? "va5" : "exports"); va5.version = "0.1.0-ADVANCED" ; })(this);
+(function(exports) { "use strict"; var va5 = (function (k) { va5 = exports[k] || {}; exports[k] = va5; return va5; })(("[object Object]" !== exports.toString()) ? "va5" : "exports"); va5.version = "0.1.1" ; })(this);
