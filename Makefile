@@ -1,4 +1,4 @@
-.PHONY: all clean deps check-device-spec build dist deploy-demo deploy-npm-dry-run deploy-npm
+.PHONY: all clean deps check-device-spec build dist deploy-demo deploy-npm-dry-run deploy-npm-true confirm-deploy-npm deploy-npm
 
 
 
@@ -100,20 +100,26 @@ demo/index.html: build
 	node -e 'var html = require("fs").readFileSync("demo/dev.html", "utf-8"); process.stdout.write(html.replace(/VA5_SRCS(.*?)VA5_SRCS/s, "--><script type=\"text/javascript\" src=\"va5.min.js\"></script><!--"));' > demo/index.html
 
 
-deploy-demo: clean build demo/index.html
+deploy-demo: dist demo/index.html
 	ssh m 'bin/drop htdocs.va5.tir.jp/demo/ || true'
 	scp -r demo m:htdocs.va5.tir.jp/ || echo 'failed to upload demo'
 	@echo 'succeeded to upload demo'
 
 
 
-deploy-npm-dry-run: deps build REFERENCE.md
+deploy-npm-dry-run: dist
 	npm pack --dry-run
 
 
-# TODO: npm publish の前にconfirmを入れたい
-deploy-npm: dist
+deploy-npm-true: dist
 	npm publish
+
+
+confirm-deploy-npm:
+	@echo "Are you ok? [y/N] " && read ans && [ $${ans:-N} = y ]
+
+
+deploy-npm: confirm-deploy-npm deploy-npm-true ;
 
 
 

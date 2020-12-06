@@ -208,6 +208,13 @@ fadeSecを指定しない場合はva5.getConfig("default-bgm-fade-sec")の秒数
 適用される。デフォルト値1秒。
 
 
+## va5.stopBgs(ch, fadeSec)
+
+指定したchのBGSの再生をfadeSec秒かけてフェードアウト終了する。
+fadeSecを指定しない場合はva5.getConfig("default-bgm-fade-sec")の秒数が
+適用される。デフォルト値1秒。
+
+
 ## va5.stopSe(ch, fadeSec)
 
 指定したチャンネルidのSEの再生をfadeSec秒かけてフェードアウト終了する。

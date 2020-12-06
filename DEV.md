@@ -22,7 +22,7 @@ http://localhost:8001/demo/dev.html
 
 1. `npm version major|minor|patch` 相当を行う
 2. README.md内ChangeLogセクションに内容を記入
-3. (optional) `make deploy-demo`
+3. `make deploy-demo` もしくは `make dist` で自動更新コンテンツを更新
 4. `git commit ...`
 5. `git tag -a vX.Y.Z -m '...'` でタグを打つ
 6. `git push && git push origin --tags`
