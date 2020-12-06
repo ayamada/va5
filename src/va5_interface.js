@@ -432,11 +432,11 @@
    * fadeSecを指定しない場合はva5.getConfig("default-bgm-fade-sec")の秒数が
    * 適用される。デフォルト値1秒。
    */
-  va5.stopBgm = function (ch, fadeSec) {
+  va5.stopBgs = function (ch, fadeSec) {
     va5._logDebug(["called va5.stopBgs", ch, fadeSec]);
     va5.init();
     if (ch == null) { ch = "__BGS"; }
-    va5.Bgm.stopBgm(ch, fadeSec);
+    va5.Bgm.stopBgs(ch, fadeSec);
   };
   /**
    * va5.stopVoice(ch, fadeSec)
