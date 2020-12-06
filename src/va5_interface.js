@@ -319,12 +319,13 @@
    * (bgm/se/voiceの第一引数にObjectを渡す時と対称になる)
    */
   va5.makePlaySePeriodically = function (intervalSec, path, opts) {
+    va5._logDebug(["called va5.makePlaySePeriodically", intervalSec, path, opts]);
     var lastPlaySec = 0;
     var f = function () {
       var now = va5.getNowMsec() / 1000;
       if ((now - lastPlaySec) < intervalSec) { return null; }
       lastPlaySec = now;
-      var ch = va5.playSe(path, opts);
+      var ch = va5.se(path, opts);
       return ch;
     };
     return f;

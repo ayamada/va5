@@ -111,7 +111,7 @@
     return false;
   };
 
-  function unloadIfNeeded (path) {
+  function unloadIfUnused (path) {
     if (!va5.getConfig("is-unload-automatically-when-finished-bgm")) { return; }
     // 参照可能な全stateをなめて、このpathが1個もなければunloadする
     // (再生中や予約が1個でもあるならunloadはしない)
@@ -121,14 +121,14 @@
   // これは再生即停止も兼ねている
   function disposeState (state) {
     if (!state) { return; }
-    if (state.disposed) { unloadIfNeeded(state.path); return; }
+    if (state.disposed) { unloadIfUnused(state.path); return; }
     state.disposed = true;
     state.isCancelled = true;
     state.isSleep = null;
-    if (!state.playingState) { unloadIfNeeded(state.path); return; }
+    if (!state.playingState) { unloadIfUnused(state.path); return; }
     va5._device.disposePlayingState(state.playingState);
     state.playingState = null;
-    unloadIfNeeded(state.path);
+    unloadIfUnused(state.path);
   }
 
 
