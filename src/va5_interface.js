@@ -85,6 +85,8 @@
    * va5.getNowMsec()
    * WebAudio依存の、経過時間を測定する為の高精度のマイクロ秒数を取得する。
    * WebAudio依存の為、 va5.init() が実行される前はnullが返る。
+   * また va5.init() が実行された後でも、タッチ操作等によるアンロックが
+   * 必要な環境では、アンロック前は0から進まない。
    * この秒数は現実の日時との相関関係がない。
    */
   va5.getNowMsec = va5.Util.getNowMsec;
