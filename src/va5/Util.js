@@ -149,11 +149,6 @@
   }
 
 
-  function setP (r, rk, params, pk) {
-    var v = params[pk];
-    if (v != null) { r[rk] = v; }
-  }
-
   /**
    * specialFilename
    *
@@ -161,42 +156,23 @@
    * 再生開始位置、再生終了位置、ループ開始位置、ループ終端位置を指定できます。
    * これらの詳細についてはplay系関数の該当引数の項目を参照してください。
    * もしplay系関数の引数も同時に与えられた場合は引数の方が優先されます。
+   * ※play系関数の引数では単位が「秒」ですが、こちらの単位は「マイクロ秒」
+   * になっています。注意してください。
    *
    * 以下のパラメータが指定可能です。
-   * - ループ開始位置 `LOOPSTART` or `LOOPSTARTSEC`
-   * - ループ終端 `LOOPEND` or `LOOPENDSEC` or `LOOPLENGTH` or `LOOPLENGTHSEC`
-   * - 再生開始位置 `PLAYSTART` or `PLAYSTARTSEC`
-   * - 終了位置 `PLAYEND` or `PLAYENDSEC` or `PLAYLENGTH` or `PLAYLENGTHSEC`
-   * - 短縮 `LS` `LSS` `LE` `LES` `LL` `LLS` `PS` `PSS` `PE` `PES` `PL` `PLS`
+   * - ループ開始位置 `LS`
+   * - ループ終端 `LE`
+   * - 再生開始位置 `PS`
+   * - 終了位置 `PE`
    * - 特殊ショートカット `NL` `ME`
-   *   (どちらも「非ループ音源」である事を示す、PLAYENDSEC=0の省略形)
+   *   (どちらも「非ループ音源」である事を示す、PLAYEND=0の省略形)
    *
-   * `foo.m4a` があった場合に `foo__(パラメータ名)=(数値).m4a` のように
+   * `foo.m4a` があった場合に `foo__(パラメータ名)(数値).m4a` のように
    * renameする事で、パラメータを指定する事が可能です。
    * fooの直後のアンダーバーは二個必要です。
    * 以下に実際のrename例を示します。
-   * (`foo.m4a` のサンプリングレートは44100Hzとします)
-   * - `foo__LOOPSTART0_LOOPEND88200_PLAYSTART44100.m4a`
-   *   ループ開始0秒位置、ループ終了2秒位置、実際の再生開始1秒位置
-   * - `foo__LOOPSTARTSEC0.5_LOOPENDSEC2.0_PLAYSTARTSEC1.0.m4a`
-   *   ループ開始0.5秒位置、ループ終了2秒位置、実際の再生開始1秒位置
-   *   (ファイル名の途中にドットが入るのが嫌な場合は、
-   *   SECなし指定の方を使ってください)
-   * - `foo__LOOPSTARTSEC0.5LOOPENDSEC2.0PLAYSTARTSEC1.0.m4a`
-   *   同上(パラメータの間をアンダーバーで区切らなくても認識される)
-   * - `foo__LOOPSTARTSEC=0.5_LOOPENDSEC=2.0_PLAYSTARTSEC=1.0.m4a`
-   *   同上(パラメータ値の前に=をつけてもよい)
-   * - `foo__LSS0.5LES2PSS1.m4a`
-   *   同上(短縮名)
-   * - `foo__PLAYEND-1.5.m4a`
-   *   曲の最後から1.5秒前の位置で再生終了
-   * - `foo__PLAYEND=-1.5.m4a`
-   *   同上(マイナス値ありなら=入りが分かりやすい)
+   * - `foo__LS500_LE2000_PS1000.m4a`
    * - `foo__NL.m4a` / `foo__ME.m4a`
-   *   非ループ曲指定(よく使う)
-   * - `foo__PES=5_.3gp` (foo.3gpが元ファイル)
-   *   これを foo__PES=5.3gp と指定してしまうと区切りが分からなくなるので、
-   *   パラメータの最後にアンダーバーをつけている
    *
    * @name specialFilename
    */
@@ -213,12 +189,12 @@
     if (!found) { return r; }
     var params = {};
     found[1].split("_").forEach(function (s) {
-      var m = s.match(/([A-Z]+)=?(.*)/);
+      var m = s.match(/([A-Z]+)(.*)/);
       if (m) {
         var k = m[1];
         var v = null;
-        var n = parseFloat(m[2]);
-        if (isFinite(n)) { v = n; }
+        var n = parseInt(m[2], 10);
+        if (isFinite(n)) { v = n / 1000; }
         params[k] = v;
       }
     });
@@ -229,32 +205,14 @@
     if ("ME" in params) { r["playEndSec"] = 0; } // MUSIC EFFECT(ツクール呼称)
 
     // 短縮名
-    setP(r, "loopStartSec", params, "LSS");
-    setP(r, "loopEndSec", params, "LES");
-    setP(r, "loopLengthSec", params, "LLS");
-    setP(r, "loopStart", params, "LS");
-    setP(r, "loopEnd", params, "LE");
-    setP(r, "loopLength", params, "LL");
-    setP(r, "playStartSec", params, "PSS");
-    setP(r, "playEndSec", params, "PES");
-    setP(r, "playLengthSec", params, "PLS");
-    setP(r, "playStart", params, "PS");
-    setP(r, "playEnd", params, "PE");
-    setP(r, "playLength", params, "PL");
-
-    // 通常
-    setP(r, "loopStartSec", params, "LOOPSTARTSEC");
-    setP(r, "loopEndSec", params, "LOOPENDSEC");
-    setP(r, "loopLengthSec", params, "LOOPLENGTHSEC");
-    setP(r, "loopStart", params, "LOOPSTART");
-    setP(r, "loopEnd", params, "LOOPEND");
-    setP(r, "loopLength", params, "LOOPLENGTH");
-    setP(r, "playStartSec", params, "PLAYSTARTSEC");
-    setP(r, "playEndSec", params, "PLAYENDSEC");
-    setP(r, "playLengthSec", params, "PLAYLENGTHSEC");
-    setP(r, "playStart", params, "PLAYSTART");
-    setP(r, "playEnd", params, "PLAYEND");
-    setP(r, "playLength", params, "PLAYLENGTH");
+    function setP (r, rk, params, pk) {
+      var v = params[pk];
+      if (v != null) { r[rk] = v; }
+    }
+    setP(r, "loopStartSec", params, "LS");
+    setP(r, "loopEndSec", params, "LE");
+    setP(r, "playStartSec", params, "PS");
+    setP(r, "playEndSec", params, "PE");
 
     return r;
   }
@@ -275,33 +233,8 @@
     // pathとoptsの両方に指定があった場合はoptsの方が優先される
     if (opts["loopStartSec"] != null) { r.loopStartSec = opts["loopStartSec"]; }
     if (opts["loopEndSec"] != null) { r.loopEndSec = opts["loopEndSec"]; }
-    if (opts["loopLengthSec"] != null) { r.loopLengthSec = opts["loopLengthSec"]; }
-    if (opts["loopStart"] != null) { r.loopStart = opts["loopStart"]; }
-    if (opts["loopEnd"] != null) { r.loopEnd = opts["loopEnd"]; }
-    if (opts["loopLength"] != null) { r.loopLength = opts["loopLength"]; }
     if (opts["playStartSec"] != null) { r.playStartSec = opts["playStartSec"]; }
     if (opts["playEndSec"] != null) { r.playEndSec = opts["playEndSec"]; }
-    if (opts["playLengthSec"] != null) { r.playLengthSec = opts["playLengthSec"]; }
-    if (opts["playStart"] != null) { r.playStart = opts["playStart"]; }
-    if (opts["playEnd"] != null) { r.playEnd = opts["playEnd"]; }
-    if (opts["playLength"] != null) { r.playLength = opts["playLength"]; }
-
-    // どちらを採用するのか判定し、フラグに持つ。優先順は以下の通り
-    // - どちらも存在するならSecを優先
-    // - 片方しか存在しないなら存在する方を選択
-    // - どちらも存在しないならSecを優先
-    r.isAdoptLoopStartSec = true;
-    if ((r.loopStartSec == null) && (r.loopStart != null)) { r.isAdoptLoopStartSec = false; }
-    r.isAdoptLoopEndSec = true;
-    if ((r.loopEndSec == null) && (r.loopEnd != null)) { r.isAdoptLoopEndSec = false; }
-    r.isAdoptLoopLengthSec = true;
-    if ((r.loopLengthSec == null) && (r.loopLength != null)) { r.isAdoptLoopLengthSec = false; }
-    r.isAdoptPlayStartSec = true;
-    if ((r.playStartSec == null) && (r.playStart != null)) { r.isAdoptPlayStartSec = false; }
-    r.isAdoptPlayEndSec = true;
-    if ((r.playEndSec == null) && (r.playEnd != null)) { r.isAdoptPlayEndSec = false; }
-    r.isAdoptPlayLengthSec = true;
-    if ((r.playLengthSec == null) && (r.playLength != null)) { r.isAdoptPlayLengthSec = false; }
 
     return r;
   };
@@ -310,39 +243,14 @@
   // parsePlayCommonOptsでparseしなかったパラメータをparseする。
   // その結果はTrue系パラメータに反映される。
   Util.parsePlayCommonOpts2 = function (r) {
-    var sampleRate = va5._device.audioSourceToSampleRate(r.as);
-    if (!sampleRate) {
-      va5._logError(["failed to get sampleRate", r.path]);
-      sampleRate = 44100;
-    }
-
     // validate処理
     // NB: 元々のloopStartSec類を変更しないようにする事！
     //     (これらはcanConnect判定に使われるので変更してはいけない)
 
-    // まずsec系とframe系のどちらを採用するかを決め、その値を取る
-    // (その際にframe系の場合はSec化する)
     var loopStartSec = r.loopStartSec;
-    if (!r.isAdoptLoopStartSec) { loopStartSec = r.loopStart / sampleRate; }
     var loopEndSec = r.loopEndSec;
-    if (!r.isAdoptLoopEndSec) { loopEndSec = r.loopEnd / sampleRate; }
-    var loopLengthSec = r.loopLengthSec;
-    if (!r.isAdoptLoopLengthSec) { loopLengthSec = r.loopLength / sampleRate; }
     var playStartSec = r.playStartSec;
-    if (!r.isAdoptPlayStartSec) { playStartSec = r.playStart / sampleRate; }
     var playEndSec = r.playEndSec;
-    if (!r.isAdoptPlayEndSec) { playEndSec = r.playEnd / sampleRate; }
-    var playLengthSec = r.playLengthSec;
-    if (!r.isAdoptPlayLengthSec) { playLengthSec = r.playLength / sampleRate; }
-
-    // length系がnullでない＆startが存在する場合は、これをend系に変換し上書き
-    // (length系がnullでなくても、startがnullの場合はend化しない)
-    if ((loopLengthSec != null) && (loopStartSec != null)) {
-      loopEndSec = loopStartSec + loopLengthSec;
-    }
-    if ((playLengthSec != null) && (playStartSec != null)) {
-      playEndSec = playStartSec + playLengthSec;
-    }
 
     loopStartSec = va5._validateNumber("loopStartSec", 0, loopStartSec||0, null, 0);
     if (loopEndSec != null) { loopEndSec = va5._validateNumber("loopEndSec", 0, loopEndSec, null, null); }
@@ -372,10 +280,6 @@
     }
     // End系の値そのものが設定されている場合は簡単に判定できる
     if (state.playEndSec != null) { return true; }
-    if (state.playEnd != null) { return true; }
-    // End系がなくても、Length系があるなら「endあり」の判定になる
-    // (Start系はなくても0になるので「常にある」とできる)
-    if ((state.playLength != null) || (state.playLengthSec != null)) { return false; }
     // Endパラメータはどこにもなかった
     return false;
   };
@@ -392,18 +296,10 @@
     if (state1.path != state2.path) { return false; }
     if (!isSkipLoop) {
       if (state1.loopStartSec != state2.loopStartSec) { return false; }
-      if (state1.loopStart != state2.loopStart) { return false; }
       if (state1.loopEndSec != state2.loopEndSec) { return false; }
-      if (state1.loopEnd != state2.loopEnd) { return false; }
-      if (state1.loopLengthSec != state2.loopLengthSec) { return false; }
-      if (state1.loopLength != state2.loopLength) { return false; }
     }
     if (state1.playStartSec != state2.playStartSec) { return false; }
-    if (state1.playStart != state2.playStart) { return false; }
     if (state1.playEndSec != state2.playEndSec) { return false; }
-    if (state1.playEnd != state2.playEnd) { return false; }
-    if (state1.playLengthSec != state2.playLengthSec) { return false; }
-    if (state1.playLength != state2.playLength) { return false; }
     if (transitionMode == "connectIfPossible") { return true; }
     // NB: ここからconnectIfSameの判定。追加の指定パラメータ全ても同一なら真
     if (state1.pitch != state2.pitch) { return false; }
@@ -422,17 +318,9 @@
    * - opts.pan : 再生時のパンを指定する。デフォルト値0.0。下限-1.0、上限1.0。
    *
    * - opts.loopStartSec : 「ループ再生の復帰ポイント位置」をファイル先頭からの秒数で指定する(これはpitchを変えた場合であっても本来の速度で換算される)。省略時は0秒地点。
-   * - opts.loopStart : loopStartSecのフレーム数指定版。整数で指定する事。多くのオーディオファイルのサンプリングレートは44100Hzなので44100＝1秒になる。
    * - opts.loopEndSec : 「ループ再生の末尾位置」をファイル先頭からの秒数で指定する。ただし0およびマイナス値を指定した場合はファイル末尾基準で換算される。省略時はファイル末尾。
-   * - opts.loopEnd : loopEndSecのフレーム数指定版。
-   * - opts.loopLengthSec : 「ループ再生の末尾位置」をloopStartSec(もしくはloopStartからの秒数)で指定する。
-   * - opts.loopLength : loopLengthSecのフレーム数指定版。
-   * - opts.playStartSec : 曲の再生開始位置を秒数指定する。省略時はloopStartSec(もしくはloopStartから換算される秒数)と同じになる。loopStartSec系列と異なる値を設定可能。
-   * - opts.playStart : playStartSecのフレーム数指定版。
-   * - opts.playEndSec : 省略時はループ音源として扱われる。これが指定されると非ループ音源扱いとなりループ系パラメータは無視され、この秒数地点に到達したタイミングで再生が即座に終了される。
-   * - opts.playEnd : playEndSecのフレーム数指定版。
-   * - opts.playLengthSec : playEndSecをplayStartSec地点からの相対秒数で指定できる。
-   * - opts.playLength : playLengthSecのフレーム数指定版。
+   * - opts.playStartSec : 曲の再生開始位置を秒数指定する。省略時はloopStartSec(もしくはloopStartから換算される秒数)と同じになる。loopStartSecと異なる値を設定可能。
+   * - opts.playEndSec : 省略時はループ音源として扱われる。これが指定されると非ループ音源扱いとなりループ系パラメータは無視され、この秒数地点に到達したタイミングで再生が即座に終了される。基本的には省略するか0を指定するかの二択。
    *
    * - opts.transitionMode : Bgm専用。 `"connectNever"` `"connectIfSame"` `"connectIfPossible"` のいずれかを指定する。デフォルト値は `"connectIfSame"` 。あるBgm再生中に同じ(もしくは近い)パラメータのBgmを再生しようとした時の挙動を指定する。 `connectNever` だった場合は常に一旦フェードアウト終了してから新たに再生し直す。 `connectIfSame` だった場合はボリューム以外のパラメータが同一の場合はボリューム適用のみ行う(pitch等が違っている場合はたとえ同じpathであってもconnectNeverの時と同様の処理になる)。 `connectIfPossible` は `volume` `pitch` `pan` 以外のパラメータが同一の時に限り `connectIfSame` の処理を行う(この3パラメータは新しい値が適用される)。
    * - opts.fadeinSec : Bgm/Voice専用。再生開始時にこの秒数かけてフェードインを行う。デフォルト値0秒。
@@ -449,16 +337,8 @@
     "pan",
     "loopStartSec",
     "loopEndSec",
-    "loopLengthSec",
-    "loopStart",
-    "loopEnd",
-    "loopLength",
     "playStartSec",
-    "playEndSec",
-    "playLengthSec",
-    "playStart",
-    "playEnd",
-    "playLength"
+    "playEndSec"
   ];
   var validKeysBgm = validKeysCommon.concat([
     "transitionMode",

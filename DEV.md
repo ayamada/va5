@@ -60,7 +60,6 @@ http://localhost:8001/demo/dev.html
 
 
 
-
 - 以下の動作確認を取る事
     - https://qiita.com/zprodev/items/7fcd8335d7e8e613a01f にあるリーク対策等が組み込まれているか再確認
         - きちんと組み込まれてるかと実際の動作の確認を行う事
@@ -77,8 +76,6 @@ http://localhost:8001/demo/dev.html
 
 
 
-- `make deploy-npm` の中で `npm publish` する前にconfirmを入れたい
-    - `are you ok? (y/N)` に `y` と入力するぐらいの奴でいいので
 
 
 
@@ -173,6 +170,7 @@ http://localhost:8001/demo/dev.html
     - デコーダによっては勝手に無音部分が曲末尾に追加されてしまう。SEでは問題ないがループBGMで問題になる
         - safari等のapple系デコーダは0、chromeおよびffmpeg系デコーダは少し、firefoxだとたくさん
     - mp3とは違い、曲頭に無音部分がつく事はないので、mp3よりは扱いやすい
+    - androidのchromeにて、実際のsampleRateがいくらであろうと、48000が返る可能性あり？(m4aエンコーダによる？)
 
 - ogg
     - mp3やm4aにある無音部分追加の問題はない

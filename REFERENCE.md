@@ -69,6 +69,8 @@ WebAudio非対応環境(Dumb)の場合は常に0が返る、注意。
 
 WebAudio依存の、経過時間を測定する為の高精度のマイクロ秒数を取得する。
 WebAudio依存の為、 va5.init() が実行される前はnullが返る。
+また va5.init() が実行された後でも、タッチ操作等によるアンロックが
+必要な環境では、アンロック前は0から進まない。
 この秒数は現実の日時との相関関係がない。
 
 
@@ -368,17 +370,9 @@ pathをロードする際に自動的にこの文字列をQUERY_STRINGとして�
 -   opts.pan : 再生時のパンを指定する。デフォルト値0.0。下限-1.0、上限1.0。
 
 -   opts.loopStartSec : 「ループ再生の復帰ポイント位置」をファイル先頭からの秒数で指定する(これはpitchを変えた場合であっても本来の速度で換算される)。省略時は0秒地点。
--   opts.loopStart : loopStartSecのフレーム数指定版。整数で指定する事。多くのオーディオファイルのサンプリングレートは44100Hzなので44100＝1秒になる。
 -   opts.loopEndSec : 「ループ再生の末尾位置」をファイル先頭からの秒数で指定する。ただし0およびマイナス値を指定した場合はファイル末尾基準で換算される。省略時はファイル末尾。
--   opts.loopEnd : loopEndSecのフレーム数指定版。
--   opts.loopLengthSec : 「ループ再生の末尾位置」をloopStartSec(もしくはloopStartからの秒数)で指定する。
--   opts.loopLength : loopLengthSecのフレーム数指定版。
--   opts.playStartSec : 曲の再生開始位置を秒数指定する。省略時はloopStartSec(もしくはloopStartから換算される秒数)と同じになる。loopStartSec系列と異なる値を設定可能。
--   opts.playStart : playStartSecのフレーム数指定版。
--   opts.playEndSec : 省略時はループ音源として扱われる。これが指定されると非ループ音源扱いとなりループ系パラメータは無視され、この秒数地点に到達したタイミングで再生が即座に終了される。
--   opts.playEnd : playEndSecのフレーム数指定版。
--   opts.playLengthSec : playEndSecをplayStartSec地点からの相対秒数で指定できる。
--   opts.playLength : playLengthSecのフレーム数指定版。
+-   opts.playStartSec : 曲の再生開始位置を秒数指定する。省略時はloopStartSec(もしくはloopStartから換算される秒数)と同じになる。loopStartSecと異なる値を設定可能。
+-   opts.playEndSec : 省略時はループ音源として扱われる。これが指定されると非ループ音源扱いとなりループ系パラメータは無視され、この秒数地点に到達したタイミングで再生が即座に終了される。基本的には省略するか0を指定するかの二択。
 
 -   opts.transitionMode : Bgm専用。 `"connectNever"` `"connectIfSame"` `"connectIfPossible"` のいずれかを指定する。デフォルト値は `"connectIfSame"` 。あるBgm再生中に同じ(もしくは近い)パラメータのBgmを再生しようとした時の挙動を指定する。 `connectNever` だった場合は常に一旦フェードアウト終了してから新たに再生し直す。 `connectIfSame` だった場合はボリューム以外のパラメータが同一の場合はボリューム適用のみ行う(pitch等が違っている場合はたとえ同じpathであってもconnectNeverの時と同様の処理になる)。 `connectIfPossible` は `volume` `pitch` `pan` 以外のパラメータが同一の時に限り `connectIfSame` の処理を行う(この3パラメータは新しい値が適用される)。
 -   opts.fadeinSec : Bgm/Voice専用。再生開始時にこの秒数かけてフェードインを行う。デフォルト値0秒。
@@ -393,44 +387,25 @@ pathをロードする際に自動的にこの文字列をQUERY_STRINGとして�
 再生開始位置、再生終了位置、ループ開始位置、ループ終端位置を指定できます。
 これらの詳細についてはplay系関数の該当引数の項目を参照してください。
 もしplay系関数の引数も同時に与えられた場合は引数の方が優先されます。
+※play系関数の引数では単位が「秒」ですが、こちらの単位は「マイクロ秒」
+になっています。注意してください。
 
 以下のパラメータが指定可能です。
 
--   ループ開始位置 `LOOPSTART` or `LOOPSTARTSEC`
--   ループ終端 `LOOPEND` or `LOOPENDSEC` or `LOOPLENGTH` or `LOOPLENGTHSEC`
--   再生開始位置 `PLAYSTART` or `PLAYSTARTSEC`
--   終了位置 `PLAYEND` or `PLAYENDSEC` or `PLAYLENGTH` or `PLAYLENGTHSEC`
--   短縮 `LS` `LSS` `LE` `LES` `LL` `LLS` `PS` `PSS` `PE` `PES` `PL` `PLS`
+-   ループ開始位置 `LS`
+-   ループ終端 `LE`
+-   再生開始位置 `PS`
+-   終了位置 `PE`
 -   特殊ショートカット `NL` `ME`
-    (どちらも「非ループ音源」である事を示す、PLAYENDSEC=0の省略形)
+    (どちらも「非ループ音源」である事を示す、PLAYEND=0の省略形)
 
-`foo.m4a` があった場合に `foo__(パラメータ名)=(数値).m4a` のように
+`foo.m4a` があった場合に `foo__(パラメータ名)(数値).m4a` のように
 renameする事で、パラメータを指定する事が可能です。
 fooの直後のアンダーバーは二個必要です。
 以下に実際のrename例を示します。
-(`foo.m4a` のサンプリングレートは44100Hzとします)
 
--   `foo__LOOPSTART0_LOOPEND88200_PLAYSTART44100.m4a`
-    ループ開始0秒位置、ループ終了2秒位置、実際の再生開始1秒位置
--   `foo__LOOPSTARTSEC0.5_LOOPENDSEC2.0_PLAYSTARTSEC1.0.m4a`
-    ループ開始0.5秒位置、ループ終了2秒位置、実際の再生開始1秒位置
-    (ファイル名の途中にドットが入るのが嫌な場合は、
-    SECなし指定の方を使ってください)
--   `foo__LOOPSTARTSEC0.5LOOPENDSEC2.0PLAYSTARTSEC1.0.m4a`
-    同上(パラメータの間をアンダーバーで区切らなくても認識される)
--   `foo__LOOPSTARTSEC=0.5_LOOPENDSEC=2.0_PLAYSTARTSEC=1.0.m4a`
-    同上(パラメータ値の前に=をつけてもよい)
--   `foo__LSS0.5LES2PSS1.m4a`
-    同上(短縮名)
--   `foo__PLAYEND-1.5.m4a`
-    曲の最後から1.5秒前の位置で再生終了
--   `foo__PLAYEND=-1.5.m4a`
-    同上(マイナス値ありなら=入りが分かりやすい)
+-   `foo__LS500_LE2000_PS1000.m4a`
 -   `foo__NL.m4a` / `foo__ME.m4a`
-    非ループ曲指定(よく使う)
--   `foo__PES=5_.3gp` (foo.3gpが元ファイル)
-    これを foo\_\_PES=5.3gp と指定してしまうと区切りが分からなくなるので、
-    パラメータの最後にアンダーバーをつけている
 
 
 # Repository

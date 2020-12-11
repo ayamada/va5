@@ -186,23 +186,9 @@
     //     load完了後であれば上書きしないのでtrue系パラメータの変動もない)
     if (state.loading) {
       state.loopStartSec = c.loopStartSec;
-      state.loopStart = c.loopStart;
       state.loopEndSec = c.loopEndSec;
-      state.loopEnd = c.loopEnd;
-      state.loopLengthSec = c.loopLengthSec;
-      state.loopLength = c.loopLength;
       state.playStartSec = c.playStartSec;
-      state.playStart = c.playStart;
       state.playEndSec = c.playEndSec;
-      state.playEnd = c.playEnd;
-      state.playLengthSec = c.playLengthSec;
-      state.playLength = c.playLength;
-      state.isAdoptLoopStartSec = c.isAdoptLoopStartSec;
-      state.isAdoptLoopEndSec = c.isAdoptLoopEndSec;
-      state.isAdoptLoopLengthSec = c.isAdoptLoopLengthSec;
-      state.isAdoptPlayStartSec = c.isAdoptPlayStartSec;
-      state.isAdoptPlayEndSec = c.isAdoptPlayEndSec;
-      state.isAdoptPlayLengthSec = c.isAdoptPlayLengthSec;
     }
   }
 

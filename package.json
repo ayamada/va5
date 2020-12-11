@@ -1,6 +1,6 @@
 {
   "name": "va5",
-  "version": "0.1.1-ADVANCED",
+  "version": "0.2.0-ADVANCED",
   "description": "Audio playback library for html5 game",
   "homepage": "https://github.com/ayamada/va5",
   "main": "build/va5.js",

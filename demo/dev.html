@@ -110,8 +110,7 @@ va5.setConfig("is-output-debug-log", true);
 
       <section id="play_nonloop_bgm">
         <div>非ループBGMを鳴らす</div>
-        <div><code>va5.bgm(music1, {playEnd:0})</code></div>
-        <div><code>va5.bgm({path:music2, playEndSec:0})</code></div>
+        <div><code>va5.bgm(music1, {playEndSec:0})</code></div>
         <div><code>va5.bgm("./cntr2.m4a#__NL")</code></div>
         <div><small>(※この "#" を使う書き方は非推奨。そうではなく、ファイル名自体を変更し、拡張子直前の位置に "__NL" の指定を入れるのがよいです。この場合はファイル名を cntr2__NL.m4a とする事になります。NL前のアンダーバーは半角二個です)</small></div>
       </section>
@@ -167,7 +166,7 @@ va5.setConfig("is-output-debug-log", true);
 
       <section id="isLoading">
         <div>プリロード中かどうか判断する</div>
-        <div><code>va5.load(music1); console.log("va5.isLoading() ", va5.isLoading(music1)); })</code></div>
+        <div><code>va5.load(music1); console.log("va5.isLoading() ", va5.isLoading(music1))</code></div>
       </section>
 
       <section id="isCancelled">

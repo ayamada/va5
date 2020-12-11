@@ -32,28 +32,14 @@ va5.buf;
 // loop/play params
 va5.loopStartSec;
 va5.loopEndSec;
-va5.loopLengthSec;
-va5.loopStart;
-va5.loopEnd;
-va5.loopLength;
 va5.playStartSec;
 va5.playEndSec;
-va5.playLengthSec;
-va5.playStart;
-va5.playEnd;
-va5.playLength;
 
 // other common params
 va5.path;
 va5.volume;
 va5.pitch;
 va5.pan;
-va5.isAdoptLoopStartSec;
-va5.isAdoptLoopEndSec;
-va5.isAdoptLoopLengthSec;
-va5.isAdoptPlayStartSec;
-va5.isAdoptPlayEndSec;
-va5.isAdoptPlayLengthSec;
 
 // other common params (2)
 va5.loopStartSecTrue;
