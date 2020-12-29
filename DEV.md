@@ -26,13 +26,13 @@ http://localhost:8001/demo/dev.html
 4. (`make deploy-demo` した場合のみ) http://va5.tir.jp/demo/ にて最終動作確認
 5. `git add . && git commit ...`
 6. `git tag -a vX.Y.Z -m '...'` でタグを打つ
-7. (optional) package.json のバージョンに-ADVANCEDをつけてコミット等を行う
-8. `git push && git push origin --tags`
-9. (以下は、将来的にはgithub actionsに全部やらせたい)
-10. (optional) `npm login`
-11. (optional) `make deploy-npm-dry-run`
-12. `make deploy-npm`
-13. githubのtagsページにてリリース処理
+7. `git push && git push origin --tags`
+8. (以下は、将来的にはgithub actionsに全部やらせたい)
+9. (optional) `npm login`
+10. (optional) `make deploy-npm-dry-run`
+11. `make deploy-npm`
+12. githubのtagsページにてリリース処理
+13. (optional) package.json のバージョンに-ADVANCEDをつけてコミット等を行う
 
 
 ## オンラインデモ兼リファレンスのリリースビルド生成およびデプロイ手順
