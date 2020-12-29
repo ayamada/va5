@@ -79,7 +79,7 @@
    */
   va5.isUnlocked = function () {
     va5.init();
-    return va5._device.isUnlocked;
+    return va5._device.isUnlocked();
   };
 
 
