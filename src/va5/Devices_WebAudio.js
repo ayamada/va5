@@ -70,6 +70,11 @@
     return true;
   };
 
+  device.isUnlocked = function () {
+    if (!ac) { return false; }
+    if (!ac.resume) { return true; }
+    return (ac.state !== "suspended");
+  }
 
   // NB: これはcurrentTimeを提供していないデバイスでは実装してはいけない。
   //     (どうしても実装する場合はnullを返すようにする事)

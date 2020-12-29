@@ -72,6 +72,18 @@
 
 
   /**
+   * va5.isUnlocked()
+   * WebAudio固有の「ユーザのインタラクションによるアンロック処理」が
+   * 完了していて実際に音を鳴らせる状態になっているか、まだかを返す。
+   * 内部デバイスが"Dumb"の場合は常にtrueが返る。
+   */
+  va5.isUnlocked = function () {
+    va5.init();
+    return va5._device.isUnlocked;
+  };
+
+
+  /**
    * va5.floatToPercent(f)
    * 小数値をパーセント整数値に変換するユーティリティ関数。
    */

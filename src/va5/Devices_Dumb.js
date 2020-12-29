@@ -15,6 +15,10 @@
     return true;
   };
 
+  device.isUnlocked = function () {
+    return true;
+  }
+
   device.getCurrentSec = function () { return null; }
 
 

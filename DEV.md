@@ -58,6 +58,10 @@ http://localhost:8001/demo/dev.html
 
 ## TODO
 
+- リファレンスが読みづらいので、jsdocの説明文の各行の末尾に半角スペース2個を入れて、きちんと改行されるようにする
+    - めんどいので後で…
+
+
 
 
 - 以下の動作確認を取る事
@@ -65,17 +69,11 @@ http://localhost:8001/demo/dev.html
         - きちんと組み込まれてるかと実際の動作の確認を行う事
     - android実機およびiOSエミュでの動作確認を取る
         - 古いiOS上でgetNowMsecが想定通り動くか確認を取る事
-        - タッチのみで動作確認が取れるところまで実装を進める事
-            - そうしないとandroidとiOSで動作確認が取れない…
-        - この為にはオンラインデモを用意する必要がある。どう実装するか考える事
 
 
 
-- リファレンスが読みづらいので、jsdocの説明文の各行の末尾に半角スペース2個を入れて、きちんと改行されるようにする
-    - めんどいので後で…
 
-
-
+- 十分にバグが取れたら、package.jsonのmainをmin版に変更する
 
 
 
@@ -92,23 +90,13 @@ http://localhost:8001/demo/dev.html
     - テスト
         - これ無理では…
     - リリース(zip生成)
-        - もしzipコマンドが使えない場合は、npmのarchiverを使うしかない
+        - npmのarchiverを使う想定
+    - npmにデプロイ
+        - あとでやり方を確認する
+        - `npm publish` は、github actionsからのみ実行できるようにすべき！(手元で `npm login` して `npm publish` するのは色々と危険すぎる)
+            - npm側でアクセス制限できるらしいので、github actionsからのデプロイを可能にしたら制限する事
 
 
-
-
-
-
-
-
-- itch.io上に置いてみて動作確認
-    - アツマールはWebAudioのアクティベートの特別対応コードが組み込まれているので、itch.ioは個別に動作確認を取っておきたい
-        - itch.ioも同様では？その場合は自サーバで動作確認を取る必要が…
-    - スマホでの動作確認が必要な為、banker3等に組み込んでちょっとしたミニゲームを実装する必要あり(Ｄ＆Ｄレベルでよい)
-    - androidでの動作確認
-    - safariでの動作確認
-    - iOS simulatorでの動作確認
-    - ieでの動作確認
 
 
 - READMEに各種バッヂを入れる
@@ -129,14 +117,6 @@ http://localhost:8001/demo/dev.html
 
 
 
-
-- `npm publish` は、github actionsからのみ実行できるようにすべき！(手元で `npm login` して `npm publish` するのは色々と危険すぎる)
-    - npm側でアクセス制限できるらしい？
-
-
-
-
-- 十分にバグが取れたら、package.jsonのmainをmin版に変更する
 
 
 
