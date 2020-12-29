@@ -123,6 +123,13 @@ WebAudio非対応環境(Dumb)の場合は常に0が返る、注意。
 (bgm/se/voiceの第一引数にObjectを渡す時と対称になる)
 
 
+## va5.isUnlocked()
+
+WebAudio固有の「ユーザのインタラクションによるアンロック処理」が
+完了していて実際に音を鳴らせる状態になっているか、まだかを返す。
+内部デバイスが"Dumb"の場合は常にtrueが返る。
+
+
 ## va5.load(path, handle)
 
 指定したpathの事前ロードを予約する。事前ロードはasyncに実行される。

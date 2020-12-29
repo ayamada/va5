@@ -23,14 +23,16 @@ http://localhost:8001/demo/dev.html
 1. `npm version major|minor|patch` 相当を行う
 2. README.md内ChangeLogセクションに内容を記入
 3. `make deploy-demo` もしくは `make dist` で自動更新コンテンツを更新
-4. `git commit ...`
-5. `git tag -a vX.Y.Z -m '...'` でタグを打つ
-6. `git push && git push origin --tags`
-7. (以下は、将来的にはgithub actionsに全部やらせたい)
-8. (optional) `npm login`
-9. (optional) `make deploy-npm-dry-run`
-10. `make deploy-npm`
-11. githubのtagsページにてリリース処理
+4. (`make deploy-demo` した場合のみ) http://va5.tir.jp/demo/ にて最終動作確認
+5. `git add . && git commit ...`
+6. `git tag -a vX.Y.Z -m '...'` でタグを打つ
+7. (optional) package.json のバージョンに-ADVANCEDをつけてコミット等を行う
+8. `git push && git push origin --tags`
+9. (以下は、将来的にはgithub actionsに全部やらせたい)
+10. (optional) `npm login`
+11. (optional) `make deploy-npm-dry-run`
+12. `make deploy-npm`
+13. githubのtagsページにてリリース処理
 
 
 ## オンラインデモ兼リファレンスのリリースビルド生成およびデプロイ手順
