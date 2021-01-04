@@ -157,6 +157,7 @@
     va5._logDebug(["called va5.load", path]);
     va5.init();
     if (va5.Util.isObject(path)) { path = path.path; }
+    if (!cont) { cont = function (as) {}; }
     va5.Cache.load(path, cont);
   };
 
