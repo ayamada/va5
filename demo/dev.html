@@ -154,7 +154,7 @@ va5.setConfig("is-output-debug-log", true);
         <div><code>va5.load(music2, function () { console.log("va5.isError() ", va5.isError(music2)); })</code></div>
         <div><code>va5.load("./not-found.m4a", function () { console.log("va5.isError() ", va5.isError("./not-found.m4a")); })</code></div>
         <div><small>(プリロードせずに再生する事も可能です。その場合は内部で勝手にプリロードを行い、ロードが完了してから再生が行われます)</small></div>
-        <div><small>(※第二引数に関数を指定した場合、既にプリロード済なら即座に関数が実行されます。まだの場合はプリロード完了後に関数が実行されますがプリロードが失敗した場合にも実行されるので、成功したかどうかが重要な場合は必ず va5.isError() で成功した事を確認してください)</small></div>
+        <div><small>(※第二引数に関数を指定した場合、既にプリロード済なら即座に関数が実行されます。まだの場合はプリロード完了後に関数が実行されますがプリロードが失敗したりキャンセルされた場合にも実行されるので、成功したかどうかが重要な場合は必ず va5.isError() 等で成功した事を確認してください)</small></div>
       </section>
 
       <section id="isError">
