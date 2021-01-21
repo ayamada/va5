@@ -208,14 +208,15 @@
       cont(null);
       return;
     }
+    if (Cache.isLoaded(path)) {
+      if (cont) { cont(loadedAudioSourceTable[path]); }
+      return;
+    }
     var entry = {
       path: path,
       cont: cont,
       isCancelled: false
     };
-    // キャンセル要求が間に入る事があるので、ロード済であっても必ず
-    // 一旦キューに入れてから処理する
-    // (キューが空かつロード済ならpreloadProcess()で即座に実行される)
     preloadRequestQueue.push(entry);
     if (!isRunningPreloadProcess) { preloadProcess(); }
   };

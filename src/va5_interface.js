@@ -147,11 +147,13 @@
    * handleが指定された場合、事前ロードが正常終了かエラー終了かキャンセル終了
    * した際にhandle()が実行される。
    * 正常終了かどうかはva5.isError()やva5.isCancelled()等で確認する事。
-   * もしpathが既にロード済の場合は、何もせず即座にhandleを実行する。
+   * pathが既にロード済(エラー含む)の場合は、何もせず即座にhandleを実行する。
    * もしpathがObjectだった場合は、path.pathがpathとして参照される。
    * (bgm/se/voiceの第一引数にObjectを渡す時と対称になる)
    * bgm/se/voiceの各再生関数は、pathが未load状態だった場合は内部で
    * このva5.load()を実行してくれる(ロード完了後に再生が開始される)。
+   * もしエラー時にリトライしたい場合は、先にva5.unload(path)を行う必要がある。
+   * (前述の通り、エラー時もキャッシュされている為)
    */
   va5.load = function (path, cont) {
     va5._logDebug(["called va5.load", path]);
